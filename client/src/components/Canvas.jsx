@@ -7,7 +7,7 @@ const BRUSH_SIZES = [2, 6, 12, 24];
 
 
 
-export default function Canvas({socket}) {
+export default function Canvas({socket, roomCode}) {
 
 
   const canvasRef = useRef(null);
@@ -64,15 +64,18 @@ export default function Canvas({socket}) {
     ctx.stroke();
 
 
-    socket.emit("draw",{
-        x0: lastPos.current.x / canvas.width,
-        y0: lastPos.current.y / canvas.height,
-        x1: pos.x,               // where it ended (current mouse position)
-        y1: pos.y,
-        color: color,            // active color
-        size: brushSize,         // brush size
-        tool: tool               // "pen" or "eraser"
-    })
+      socket.emit("draw", { 
+        room: roomCode, 
+        payload:{
+          x0: lastPos.current.x / canvas.width,
+          y0: lastPos.current.y / canvas.height,
+          x1: pos.x,               // where it ended (current mouse position)
+          y1: pos.y,
+          color: color,            // active color
+          size: brushSize,         // brush size
+          tool: tool               // "pen" or "eraser"
+          }
+      })
 
     lastPos.current = pos;
 
@@ -85,13 +88,14 @@ export default function Canvas({socket}) {
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#16213e";
+    ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    socket.emit("clearCanvas", { room: roomCode });
   };
 
   useEffect(() => {
-    socket.on('draw', (data) => {
-        const { x0, y0, x1, y1, color, size, tool } = data;
+    socket.on('updateDrawing', (payload) => {
+        const { x0, y0, x1, y1, color, size, tool } = payload;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
 
@@ -107,8 +111,18 @@ export default function Canvas({socket}) {
         lastPos.current = { x: x1, y: y1 };
     })
 
-    return () => socket.off('draw')
+    return () => socket.off('updateDrawing')
   })
+
+  useEffect(() => {
+    socket.on("updateCanvas", () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    })
+    return () => socket.off('updateCanvas')
+  }, [])
 
   return (
     <>

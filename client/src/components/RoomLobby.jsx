@@ -33,12 +33,15 @@ const characters = [
   { id: 8, name: "Dragon",  img: DEFAULT_FALLBACK },
 ];
 
-export default function RoomLobby({ roomCode, setRoomCode }) {
+export default function RoomLobby({ socket, roomCode, setRoomCode }) {
   const [username, setUsername]         = useState("");
   const [selectedChar, setSelectedChar] = useState(null);
   const [toast, setToast]               = useState("");
 
   const navigate = useNavigate();
+
+  console.log(socket);
+  console.log(typeof socket);
 
 
   const canProceed = username.trim().length > 0 && selectedChar !== null;
@@ -53,6 +56,9 @@ export default function RoomLobby({ roomCode, setRoomCode }) {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     setRoomCode(code);
     showToast(`Room created! Code: ${code}`);
+
+    socket.emit("createRoom", { room: code, username, characterId: selectedChar });
+
   };
 
   const handleJoin = () => {
@@ -60,6 +66,7 @@ export default function RoomLobby({ roomCode, setRoomCode }) {
     if (!roomCode.trim()) { showToast("Enter a room code first!"); return; }
     showToast(`Joining room ${roomCode.toUpperCase()}…`);
     navigate("/game");
+    socket.emit("createRoom", { room: roomCode, username, characterId: selectedChar });
   };
 
   const selected = characters.find(c => c.id === selectedChar);

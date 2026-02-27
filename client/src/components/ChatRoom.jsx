@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
-const ChatRoom = ({socket}) => {
+const ChatRoom = ({socket, roomCode}) => {
 
     const [message, setMessage] = useState("");
     const [chatMessages, setChatMessages] = useState([]);
@@ -10,14 +10,14 @@ const ChatRoom = ({socket}) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!message.trim()) return;
-        socket.emit("chatMessage", message);
-        setMessage(""); // ✅ clear input
+        socket.emit("chatMessage", { room: roomCode, message });
+        setMessage(""); 
     };
 
 
 
     useEffect(() => {
-        socket.on("chatMessage", (message) => {
+        socket.on("receiveChatMessage", (message) => {
             try {
                 setChatMessages((prev) => [...prev, message])                
             } catch (error) {
@@ -25,7 +25,7 @@ const ChatRoom = ({socket}) => {
             }
 
         }) 
-        return () => socket.off("chatMessage");
+        return () => socket.off("receiveChatMessage");
     },[])
 
     return (

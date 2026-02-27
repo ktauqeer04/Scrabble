@@ -19,7 +19,7 @@ function App() {
       <Routes>
 
         {/* Route 1: Lobby */}
-        <Route path="/" element={<RoomLobby roomCode={roomCode} setRoomCode={setRoomCode} />} />
+        <Route path="/" element={<RoomLobby socket={socket} roomCode={roomCode} setRoomCode={setRoomCode} />} />
 
         {/* Route 2: Game — Canvas + ChatRoom side by side */}
         <Route path="/game" element={
