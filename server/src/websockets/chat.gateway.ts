@@ -29,4 +29,13 @@ export class ChatGateway {
         this.server.emit('chatMessage', data)
     }
 
+
+    @SubscribeMessage('createRoom')
+    handleEvent3(
+        @MessageBody() data: any,
+        @ConnectedSocket() client: Socket,
+    ){
+        console.log('Received chat message:', data);
+    }
+
 }
