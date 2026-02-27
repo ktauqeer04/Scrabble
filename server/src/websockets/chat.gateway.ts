@@ -9,12 +9,13 @@ export class ChatGateway {
     @SubscribeMessage('draw')
     handleEvent1(
 
-        @MessageBody() data: any,
+        @MessageBody() data: { room: string, payload: any},
         @ConnectedSocket() client: Socket,
 
     ): any {
 
-        client.broadcast.emit('draw', data);
+        console.log('Received drawing data:', data);
+        client.to(data.room).emit('updateDrawing', data.payload)
 
         return true;
 
@@ -22,20 +23,32 @@ export class ChatGateway {
 
     @SubscribeMessage('chatMessage')
     handleEvent2(
-        @MessageBody() data: any,
+        @MessageBody() data: { room: string, message: string},
         @ConnectedSocket() client: Socket,
     ){
         console.log('Received chat message:', data);
-        this.server.emit('chatMessage', data)
+        client.to(data.room).emit('receiveChatMessage', data.message)
+    }
+
+    @SubscribeMessage('clearCanvas')
+    handleEvent3(
+        @MessageBody() data: { room: string },
+        @ConnectedSocket() client: Socket,
+    ){
+        client.to(data.room).emit('updateCanvas')
     }
 
 
     @SubscribeMessage('createRoom')
-    handleEvent3(
+    handleEvent4(
         @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ){
-        console.log('Received chat message:', data);
+        console.log('Received room message:', data);
+        client.join(data.room);
+        // this.server.to(data.room).emit()
+        console.log('client joinded', client.id)
+        console.log(`Client ${client.id} is in rooms:`, client.rooms);
     }
 
 }
