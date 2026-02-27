@@ -3,25 +3,42 @@ import Canvas from './components/Canvas'
 import { io } from "socket.io-client";
 import './App.css'
 import ChatRoom from './components/ChatRoom';
+import RoomLobby from './components/RoomLobby';
+import { Router, Routes, Route } from 'react-router-dom';
+import { useRoom } from './context/RoomContext';
 
 function App() {
 
   const socket = useMemo(() => io("http://localhost:3000"), []);
 
-  return (
-  <div className="flex h-screen">
-    {/* Left: Canvas – takes all remaining space */}
-    <div className="flex-1 min-w-0">
-      <Canvas socket={socket} />
-    </div>
+  const { roomCode, setRoomCode } = useRoom();
 
-    {/* Right: Sidebar – fixed width */}
-    <div className='flex-1 '>
-      <ChatRoom socket={socket} />
-    </div>
-    
-  </div>
-);
+  console.log("Current room code in App.jsx:", roomCode);
+
+  return (
+      <Routes>
+
+        {/* Route 1: Lobby */}
+        <Route path="/" element={<RoomLobby roomCode={roomCode} setRoomCode={setRoomCode} />} />
+
+        {/* Route 2: Game — Canvas + ChatRoom side by side */}
+        <Route path="/game" element={
+          <div className="flex h-screen">
+            <div className="flex-1 min-w-0 border border-gray-300">
+              <Canvas socket={socket} roomCode={roomCode} />
+            </div>
+            <div className="flex-1 min-w-0 border border-gray-300">
+              <div className="flex h-screen items-center justify-center">
+                <ChatRoom socket={socket} roomCode={roomCode}/>
+              </div>
+            </div>
+          </div>
+        } />
+
+      </Routes>
+
+  );
+
 }
 
 export default App

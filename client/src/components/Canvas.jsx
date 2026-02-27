@@ -1,6 +1,5 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { io } from "socket.io-client";
-
+import { useRef, useState, useEffect, useCallback } from "react";
+import "../styles/Canvas.css";
 
 
 const COLORS = ["#f8f8f2", "#ff6188", "#fc9867", "#ffd866", "#a9dc76", "#78dce8", "#ab9df2", "#1a1a2e"];
@@ -15,7 +14,7 @@ export default function Canvas({socket}) {
   const isDrawing = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
 
-  const [color, setColor] = useState("#f8f8f2");
+  const [color, setColor] = useState("#1a1a2e");
   const [brushSize, setBrushSize] = useState(6);
   const [tool, setTool] = useState("pen"); // pen | eraser
 
@@ -24,7 +23,7 @@ export default function Canvas({socket}) {
     const ctx = canvas.getContext("2d");
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-    ctx.fillStyle = "#16213e";
+    ctx.fillStyle = "#ffffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }, []);
 
@@ -58,7 +57,7 @@ export default function Canvas({socket}) {
     ctx.beginPath();
     ctx.moveTo(lastPos.current.x, lastPos.current.y);
     ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = tool === "eraser" ? "#16213e" : color;
+    ctx.strokeStyle = tool === "eraser" ? "#ffffffff" : color;
     ctx.lineWidth = tool === "eraser" ? brushSize * 3 : brushSize;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -99,7 +98,7 @@ export default function Canvas({socket}) {
         ctx.beginPath();
         ctx.moveTo(x0 * canvas.width, y0 * canvas.height);
         ctx.lineTo(x1, y1);
-        ctx.strokeStyle = tool === "eraser" ? "#16213e" : color;
+        ctx.strokeStyle = tool === "eraser" ? "#ffffffff" : color;
         ctx.lineWidth = tool === "eraser" ? size * 3 : size;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
@@ -112,113 +111,84 @@ export default function Canvas({socket}) {
   })
 
   return (
-    <div className="flex flex-col h-screen bg-[#0f0e17] font-mono select-none">
-      {/* Toolbar */}
-      <div className="flex items-center gap-5 px-5 py-3 bg-[#1a1a2e] border-b border-[#2a2a4a] flex-wrap">
+    <>
+      <div className="cb-wrap">
 
-        {/* Title */}
-        <span className="text-[#78dce8] text-xs tracking-wider font-bold mr-2">
-          CANVAS
-        </span>
+        {/* Toolbar */}
+        <div className="cb-toolbar">
 
-        {/* Colors */}
-        <div className="flex items-center gap-1.5">
-          {COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => { setColor(c); setTool("pen"); }}
-              className={`
-                w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all duration-150
-                ${color === c && tool === "pen"
-                  ? "w-7 h-7 sm:w-8 sm:h-8 ring-2 ring-[#78dce8] ring-offset-2 ring-offset-[#1a1a2e]"
-                  : "border-2 border-transparent"}
-              `}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
+          {/* DRAW tiles */}
+          <div style={{ display: "flex", gap: "3px" }}>
+            {["D","R","A","W"].map((l, i) => (
+              <div className="cb-mini-tile" key={i}>
+                {l}<span>{[2,1,1,4][i]}</span>
+              </div>
+            ))}
+          </div>
 
-        <div className="w-px h-6 bg-[#2a2a4a]" />
+          <div className="cb-sep" />
 
-        {/* Brush sizes */}
-        <div className="flex items-center gap-2">
-          {BRUSH_SIZES.map((s) => (
-            <button
-              key={s}
-              onClick={() => setBrushSize(s)}
-              className={`
-                w-9 h-9 rounded-md flex items-center justify-center transition-colors
-                ${brushSize === s
-                  ? "bg-[#2a2a4a] border border-[#78dce8]"
-                  : "border border-[#2a2a4a] hover:bg-[#24243a]"}
-              `}
-            >
-              <div
-                className="rounded-full bg-[#f8f8f2]"
-                style={{ width: Math.max(s, 2), height: Math.max(s, 2) }}
+          {/* Colors */}
+          <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
+            {COLORS.map(c => (
+              <button
+                key={c}
+                className={`cb-swatch${color === c && tool === "pen" ? " on" : ""}${c === "#ffffff" ? " white" : ""}`}
+                style={{ backgroundColor: c }}
+                onClick={() => { setColor(c); setTool("pen"); }}
               />
-            </button>
-          ))}
+            ))}
+          </div>
+
+          <div className="cb-sep" />
+
+          {/* Brush sizes */}
+          <div style={{ display: "flex", gap: "4px" }}>
+            {BRUSH_SIZES.map(s => (
+              <button key={s} className={`cb-brush${brushSize === s ? " on" : ""}`} onClick={() => setBrushSize(s)}>
+                <div className="cb-brush-dot" style={{ width: Math.min(s, 18), height: Math.min(s, 18) }} />
+              </button>
+            ))}
+          </div>
+
+          <div className="cb-sep" />
+
+          {/* Eraser */}
+          <button
+            className={`cb-btn cb-eraser${tool === "eraser" ? " on" : ""}`}
+            onClick={() => setTool(tool === "eraser" ? "pen" : "eraser")}
+          >
+            🧹 Eraser
+          </button>
+
+          {/* Clear */}
+          <button className="cb-btn cb-clear" onClick={clearCanvas}>
+            🗑️ Clear
+          </button>
+
+          {/* Pill */}
+          <div className="cb-pill">
+            <div className="cb-pill-dot" style={{ backgroundColor: tool === "eraser" ? "#ffffff" : color }} />
+            <span className="cb-pill-label">{tool === "eraser" ? "ERASER" : color.toUpperCase()}</span>
+          </div>
         </div>
 
-        <div className="w-px h-6 bg-[#2a2a4a]" />
-
-        {/* Eraser */}
-        <button
-          onClick={() => setTool(tool === "eraser" ? "pen" : "eraser")}
-          className={`
-            px-3.5 py-1.5 rounded-md text-xs tracking-wide font-medium transition-colors
-            ${tool === "eraser"
-              ? "bg-[#ff6188] text-[#0f0e17] border border-[#ff6188] font-semibold"
-              : "border border-[#2a2a4a] text-[#f8f8f2] hover:bg-[#24243a]"}
-          `}
-        >
-          ERASER
-        </button>
-
-        {/* Clear */}
-        <button
-          onClick={clearCanvas}
-          className="
-            px-3.5 py-1.5 rounded-md text-xs tracking-wide
-            border border-[#2a2a4a] text-gray-500 hover:text-gray-300 hover:border-gray-600
-            transition-colors
-          "
-        >
-          CLEAR
-        </button>
-
-        {/* Current color indicator */}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-gray-600">
-            {tool === "eraser" ? "ERASER" : color.toUpperCase()}
-          </span>
-          <div
-            className="w-5 h-5 rounded border border-[#2a2a4a]"
-            style={{
-              backgroundColor: tool === "eraser" ? "#16213e" : color,
-            }}
+        {/* Canvas */}
+        <div className="cb-canvas-wrap">
+          <canvas
+            ref={canvasRef}
+            className={tool === "eraser" ? "cur-erase" : "cur-pen"}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
           />
         </div>
-      </div>
 
-      {/* Canvas Area */}
-      <div className="flex-1 relative">
-        <canvas
-          ref={canvasRef}
-          className={`
-            w-full h-full block
-            ${tool === "eraser" ? "cursor-cell" : "cursor-crosshair"}
-          `}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-        />
       </div>
-    </div>
+    </>
   );
 }
