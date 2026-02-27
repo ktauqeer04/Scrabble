@@ -66,8 +66,8 @@ export default function Canvas({socket}) {
 
 
     socket.emit("draw",{
-        x0: lastPos.current.x,   // where the stroke segment started
-        y0: lastPos.current.y,
+        x0: lastPos.current.x / canvas.width,
+        y0: lastPos.current.y / canvas.height,
         x1: pos.x,               // where it ended (current mouse position)
         y1: pos.y,
         color: color,            // active color
@@ -97,7 +97,7 @@ export default function Canvas({socket}) {
         const ctx = canvas.getContext("2d");
 
         ctx.beginPath();
-        ctx.moveTo(x0, y0);
+        ctx.moveTo(x0 * canvas.width, y0 * canvas.height);
         ctx.lineTo(x1, y1);
         ctx.strokeStyle = tool === "eraser" ? "#16213e" : color;
         ctx.lineWidth = tool === "eraser" ? size * 3 : size;
@@ -112,97 +112,66 @@ export default function Canvas({socket}) {
   })
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      height: "100vh",
-      background: "#0f0e17",
-      fontFamily: "'DM Mono', monospace",
-      userSelect: "none",
-    }}>
-
+    <div className="flex flex-col h-screen bg-[#0f0e17] font-mono select-none">
       {/* Toolbar */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "20px",
-        padding: "12px 20px",
-        background: "#1a1a2e",
-        borderBottom: "1px solid #2a2a4a",
-        flexWrap: "wrap",
-      }}>
+      <div className="flex items-center gap-5 px-5 py-3 bg-[#1a1a2e] border-b border-[#2a2a4a] flex-wrap">
 
         {/* Title */}
-        <span style={{ color: "#78dce8", fontSize: "13px", letterSpacing: "0.15em", fontWeight: "bold", marginRight: 8 }}>
+        <span className="text-[#78dce8] text-xs tracking-wider font-bold mr-2">
           CANVAS
         </span>
 
         {/* Colors */}
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+        <div className="flex items-center gap-1.5">
           {COLORS.map((c) => (
             <button
               key={c}
               onClick={() => { setColor(c); setTool("pen"); }}
-              style={{
-                width: color === c && tool === "pen" ? 28 : 22,
-                height: color === c && tool === "pen" ? 28 : 22,
-                borderRadius: "50%",
-                background: c,
-                border: color === c && tool === "pen" ? "2px solid #78dce8" : "2px solid transparent",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                outline: "none",
-              }}
+              className={`
+                w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all duration-150
+                ${color === c && tool === "pen"
+                  ? "w-7 h-7 sm:w-8 sm:h-8 ring-2 ring-[#78dce8] ring-offset-2 ring-offset-[#1a1a2e]"
+                  : "border-2 border-transparent"}
+              `}
+              style={{ backgroundColor: c }}
             />
           ))}
         </div>
 
-        <div style={{ width: 1, height: 24, background: "#2a2a4a" }} />
+        <div className="w-px h-6 bg-[#2a2a4a]" />
 
         {/* Brush sizes */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div className="flex items-center gap-2">
           {BRUSH_SIZES.map((s) => (
             <button
               key={s}
               onClick={() => setBrushSize(s)}
-              style={{
-                width: 36, height: 36,
-                borderRadius: "6px",
-                background: brushSize === s ? "#2a2a4a" : "transparent",
-                border: brushSize === s ? "1px solid #78dce8" : "1px solid #2a2a4a",
-                cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                outline: "none",
-              }}
+              className={`
+                w-9 h-9 rounded-md flex items-center justify-center transition-colors
+                ${brushSize === s
+                  ? "bg-[#2a2a4a] border border-[#78dce8]"
+                  : "border border-[#2a2a4a] hover:bg-[#24243a]"}
+              `}
             >
-              <div style={{
-                width: Math.max(s, 2),
-                height: Math.max(s, 2),
-                borderRadius: "50%",
-                background: "#f8f8f2",
-              }} />
+              <div
+                className="rounded-full bg-[#f8f8f2]"
+                style={{ width: Math.max(s, 2), height: Math.max(s, 2) }}
+              />
             </button>
           ))}
         </div>
 
-        <div style={{ width: 1, height: 24, background: "#2a2a4a" }} />
+        <div className="w-px h-6 bg-[#2a2a4a]" />
 
         {/* Eraser */}
         <button
           onClick={() => setTool(tool === "eraser" ? "pen" : "eraser")}
-          style={{
-            padding: "6px 14px",
-            borderRadius: "6px",
-            background: tool === "eraser" ? "#ff6188" : "transparent",
-            border: tool === "eraser" ? "1px solid #ff6188" : "1px solid #2a2a4a",
-            color: tool === "eraser" ? "#0f0e17" : "#f8f8f2",
-            fontSize: "12px",
-            cursor: "pointer",
-            letterSpacing: "0.08em",
-            fontFamily: "inherit",
-            fontWeight: tool === "eraser" ? "bold" : "normal",
-            outline: "none",
-          }}
+          className={`
+            px-3.5 py-1.5 rounded-md text-xs tracking-wide font-medium transition-colors
+            ${tool === "eraser"
+              ? "bg-[#ff6188] text-[#0f0e17] border border-[#ff6188] font-semibold"
+              : "border border-[#2a2a4a] text-[#f8f8f2] hover:bg-[#24243a]"}
+          `}
         >
           ERASER
         </button>
@@ -210,45 +179,37 @@ export default function Canvas({socket}) {
         {/* Clear */}
         <button
           onClick={clearCanvas}
-          style={{
-            padding: "6px 14px",
-            borderRadius: "6px",
-            background: "transparent",
-            border: "1px solid #2a2a4a",
-            color: "#888",
-            fontSize: "12px",
-            cursor: "pointer",
-            letterSpacing: "0.08em",
-            fontFamily: "inherit",
-            outline: "none",
-          }}
+          className="
+            px-3.5 py-1.5 rounded-md text-xs tracking-wide
+            border border-[#2a2a4a] text-gray-500 hover:text-gray-300 hover:border-gray-600
+            transition-colors
+          "
         >
           CLEAR
         </button>
 
-        {/* Current color swatch */}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#555", fontSize: "11px" }}>
+        {/* Current color indicator */}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-gray-600">
             {tool === "eraser" ? "ERASER" : color.toUpperCase()}
           </span>
-          <div style={{
-            width: 20, height: 20, borderRadius: 4,
-            background: tool === "eraser" ? "#16213e" : color,
-            border: "1px solid #2a2a4a"
-          }} />
+          <div
+            className="w-5 h-5 rounded border border-[#2a2a4a]"
+            style={{
+              backgroundColor: tool === "eraser" ? "#16213e" : color,
+            }}
+          />
         </div>
       </div>
 
-      {/* Canvas */}
-      <div style={{ flex: 1, position: "relative" }}>
+      {/* Canvas Area */}
+      <div className="flex-1 relative">
         <canvas
           ref={canvasRef}
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "block",
-            cursor: tool === "eraser" ? "cell" : "crosshair",
-          }}
+          className={`
+            w-full h-full block
+            ${tool === "eraser" ? "cursor-cell" : "cursor-crosshair"}
+          `}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
