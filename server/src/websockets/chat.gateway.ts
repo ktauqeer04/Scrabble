@@ -1,10 +1,22 @@
-import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { ConnectedSocket, MessageBody, SubscribeMessage,OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 
 @WebSocketGateway({ cors: true})
-export class ChatGateway {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
+
+
+    // let rooms: 
+
+    handleDisconnect(client: Socket) {
+        console.log('Client disconnected:', client.id);
+    }
+
+    handleConnection(client: Socket, ...args: any[]) {
+        console.log('client Connected', client.id);
+        console.log(`total number of client is in rooms:`, Object.keys(client.connected).length);
+    }
 
     @SubscribeMessage('draw')
     handleEvent1(
@@ -14,7 +26,7 @@ export class ChatGateway {
 
     ): any {
 
-        console.log('Received drawing data:', data);
+        console.log('draw Event: Received drawing data:', data);
         client.to(data.room).emit('updateDrawing', data.payload)
 
         return true;
@@ -26,8 +38,9 @@ export class ChatGateway {
         @MessageBody() data: { room: string, message: string},
         @ConnectedSocket() client: Socket,
     ){
-        console.log('Received chat message:', data);
+        console.log('chatMessage Event: Received chat message:', data);
         client.to(data.room).emit('receiveChatMessage', data.message)
+        console.log('chatMessage Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
     }
 
     @SubscribeMessage('clearCanvas')
@@ -44,11 +57,22 @@ export class ChatGateway {
         @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ){
-        console.log('Received room message:', data);
+        console.log('createRoom Event: Received room message:', data);
         client.join(data.room);
         // this.server.to(data.room).emit()
-        console.log('client joinded', client.id)
-        console.log(`Client ${client.id} is in rooms:`, client.rooms);
+        console.log('createRoom Event: client joined', client.id)
+        console.log(`createRoom Event: Client ${client.id} is in rooms:`, client.rooms);
+        console.log('createRoom Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
+    }
+
+
+    @SubscribeMessage('joinRoom')
+    handleEvent5(
+        @MessageBody() data: any,
+        @ConnectedSocket() client: Socket,
+    ){
+        console.log('joinRoom Event: Joined Room', client.rooms);
+        client.join(data.room)
     }
 
 }
