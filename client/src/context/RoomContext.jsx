@@ -1,13 +1,45 @@
 // src/context/RoomContext.js
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 
 const RoomContext = createContext();
+const socket = io("http://localhost:3000", {
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  autoConnect: true
+})
 
 export function RoomProvider({ children }) {
-  const [roomCode, setRoomCode] = useState("");
+  const [roomCode, setRoomCodeState] = useState(() => {
+    return sessionStorage.getItem("roomCode") || "";
+  });
+
+  const setRoomCode = (code) => {
+      sessionStorage.setItem("roomCode", code);
+      setRoomCodeState(code);
+  };
+
+
+  console.log("Current room code in RoomProvider after refresh:", roomCode);
+
+  useEffect(() => {
+    if(!roomCode) return;
+
+    socket.on('connect', () => {
+      socket.emit("joinRoom", { room: roomCode });
+    })
+
+    if (socket.connected) {
+      socket.emit('joinRoom', { room: roomCode });
+    }
+
+    return () => {return () => socket.off('connect', handleConnect)};
+
+  }, [roomCode])
 
   return (
-    <RoomContext.Provider value={{ roomCode, setRoomCode }}>
+    <RoomContext.Provider value={{ socket,roomCode, setRoomCode }}>
       {children}
     </RoomContext.Provider>
   );

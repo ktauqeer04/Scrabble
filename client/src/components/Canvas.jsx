@@ -95,6 +95,7 @@ export default function Canvas({socket, roomCode}) {
 
   useEffect(() => {
     socket.on('updateDrawing', (payload) => {
+
         const { x0, y0, x1, y1, color, size, tool } = payload;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");

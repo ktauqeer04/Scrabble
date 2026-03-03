@@ -1,6 +1,8 @@
-
+import Canvas from './Canvas';
+import ChatRoom from './ChatRoom';
 
 function Playground({ socket, roomCode }) {
+
   return (
     <div className="flex h-screen">
         <div className="flex-1 min-w-0 border border-gray-300">
