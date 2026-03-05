@@ -7,8 +7,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     server: Server;
 
 
-    // let rooms: 
-
+    //let rooms: 
+    
     handleDisconnect(client: Socket) {
         console.log('Client disconnected:', client.id);
     }
