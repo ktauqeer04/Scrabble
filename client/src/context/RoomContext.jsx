@@ -17,6 +17,7 @@ export function RoomProvider({ children }) {
 
   const setRoomCode = (code) => {
       sessionStorage.setItem("roomCode", code);
+
       setRoomCodeState(code);
   };
 
@@ -27,11 +28,11 @@ export function RoomProvider({ children }) {
     if(!roomCode) return;
 
     socket.on('connect', () => {
-      socket.emit("joinRoom", { room: roomCode });
+      socket.emit("refreshPage", { room: roomCode });
     })
 
     if (socket.connected) {
-      socket.emit('joinRoom', { room: roomCode });
+      socket.emit("refreshPage", { room: roomCode });
     }
 
     return () => {return () => socket.off('connect', handleConnect)};

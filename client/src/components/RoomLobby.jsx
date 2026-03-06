@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/RoomLobby.css";
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -37,11 +37,11 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
   const [username, setUsername]         = useState("");
   const [selectedChar, setSelectedChar] = useState(null);
   const [toast, setToast]               = useState("");
+  const [roomFlag, setRoomFlag]         = useState(false);
 
   const navigate = useNavigate();
 
   console.log(socket);
-  console.log(typeof socket);
 
 
   const canProceed = username.trim().length > 0 && selectedChar !== null;
@@ -57,7 +57,7 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
     setRoomCode(code);
     showToast(`Room created! Code: ${code}`);
 
-    socket.emit("createRoom", { room: code, username, characterId: selectedChar });
+    socket.emit("createRoom", { room: code, username: username, characterId: selectedChar });
 
   };
 
@@ -65,11 +65,27 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
     if (!canProceed) return;
     if (!roomCode.trim()) { showToast("Enter a room code first!"); return; }
     showToast(`Joining room ${roomCode.toUpperCase()}…`);
-    navigate("/game");
-    socket.emit("createRoom", { room: roomCode, username, characterId: selectedChar });
+    socket.emit("joinRoom", { room: roomCode, username: username, characterId: selectedChar });
   };
 
   const selected = characters.find(c => c.id === selectedChar);
+
+  useEffect(() => {
+    socket.on("roomNotExists", (data) => {
+      console.log("Received roomNotExists event:", data);
+      setRoomFlag(data.flag);
+      showToast("Room does not exist!");
+    })
+    return () => socket.off("roomNotExists");
+  }, [socket, showToast]);
+
+  useEffect(() => {
+    socket.on("joinedRoom", (data) => {
+      console.log("Received roomJoined event:", data);
+      setRoomFlag(data.flag);
+    })
+    return () => socket.off("roomJoined");
+  }, [socket, showToast]);
 
   return (
     <>
@@ -157,6 +173,7 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
               className="btn btn-join"
               onClick={() => {
                 handleJoin();
+                if(!roomFlag) navigate("/game");
               }}
               disabled={!canProceed}
             >
