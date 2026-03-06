@@ -62,9 +62,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // console.log('createRoom Event: Received room message:', data);
         client.join(data.room);
         // this.server.to(data.room).emit()
+        console.log('createRoom fired', client.id) 
 
         const game = new Game();
-        game.startGame(client.id)
+        game.startGame(data.username);
         
         this.rooms.set(data.room, game);
 
@@ -79,14 +80,42 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ){
-        // console.log('joinRoom Event: Joined Room', client.rooms);
+        console.log('joinRoom Event: Joined Room', client.rooms);
+        if(!this.rooms.has(data.room)){
+            client.emit('roomNotExists', {
+                message: 'Room does not exist',
+                flag: true
+            });
+            return;
+        }
         client.join(data.room)
 
+        client.emit('joinedRoom', {
+            message: 'Joined Room Successfully',
+            flag: false
+        })
+        
         const game = this.rooms.get(data.room);
-        if(game){
-            game.startGame(client.id);
-        }
-        // console.log('joinRoom Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
+
+        game?.addPlayer(data.username);
+        
+
+        // let drawer =
+        // if(game){
+        //     game.addPlayer(client.id);
+        //     game.roundStart(0);
+        // }
+
+    }
+
+
+    @SubscribeMessage('refreshPage')
+    handleEvent6(
+        @MessageBody() data: { room: string, message: string},
+        @ConnectedSocket() client: Socket,
+    ){
+        client.join(data.room)
+        console.log('refreshPage Event: Page refreshed in room', data.room)
     }
 
 }
