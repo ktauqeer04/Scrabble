@@ -1,9 +1,9 @@
 import words from "./words";
 
-interface gameState {
-    WAITING : 'waiting'
-    IN_PROGRESS : 'in_progress',
-    ENDED : 'ended'
+enum gameState {
+    WAITING = 'waiting',
+    IN_PROGRESS = 'in_progress',
+    ENDED = 'ended'
 }
 
 
@@ -19,61 +19,60 @@ export default class Game {
     timer: any;
     round: any;
     gameState: gameState;
+    allGuesses: boolean[];
 
     constructor() {
-        this.players = [];        // ← was undefined, now an empty array
+        this.players = [];       
         this.guessWords = [];
         this.winnerStack = [];
         this.guessers = [];
-        this.scoreBoard = {};
+        this.scoreBoard = new Map<string, number>();
         this.round = 1;
         this.currentWord = null;
         this.drawer = null;
         this.timer = null;
+        this.gameState = gameState.WAITING;
+        this.allGuesses = [];
     }
 
 
     startGame(player: any) {
         this.guessWords = words
-        console.log('guessWords', this.guessWords)
+        // console.log('guessWords', this.guessWords)
         this.addPlayer(player)
+        this.gameState = gameState.IN_PROGRESS;
+        const result = this.roundStart(0);
     }
 
     addPlayer(player: string) {
         if(this.players.includes(player)) return;
         this.players.push(player)
-        console.log('addPlayer: player added', this.players)
+        // console.log('addPlayer: player added', this.players)
     }
 
     roundStart(playeridx: number){
+
+        if(this.players.length < 2) {
+            return;
+        }
+        
+        this.allGuesses = new Array(this.guessers.length).fill(false);
 
         const result = this.playerSelectWord(playeridx);
 
         if(!result) return;
 
         const { drawer, guessWords } = result;
-        
-        console.log('roundStart: drawer selected', drawer)
-        console.log('roundStart: guessWords selected', guessWords)
-
-        // this.timer = setTimeout(() => {
-        //     const randomWord = guessWords[Math.floor(Math.random() * guessWords.length)];
-        //     this.currentWord = randomWord;
-        //     console.log('time ran out, auto selected word:', this.currentWord);
-        //     // proceed to next phase
-        // }, 30000);
 
         return {
             drawer, 
             guessWords
         }
 
-
     }
 
     playerSelectWord(playeridx: number) {
 
-        if(this.players.length < 2 ) return;
         if(this.drawer) return;
         this.drawer = this.players[playeridx];
 
@@ -86,12 +85,17 @@ export default class Game {
 
     }
 
-    playersGuessWord() {
+    playersGuessWord(word: string, player: string) {
+        if(word === this.currentWord && this.guessers.includes(player)) {
+            this.playerScored();
+        }
 
     }
 
     roundEnd() {
-
+        if(this.allGuesses.every(guess => guess === true) || this.timer === 0) {
+            // Handle round end logic
+        }
     }
 
     endGame() {
@@ -110,6 +114,10 @@ export default class Game {
             timer: this.timer,
             winnerStack: this.winnerStack
         }
+    }
+
+    playerScored(){
+
     }
 
 }
