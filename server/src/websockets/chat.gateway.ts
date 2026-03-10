@@ -54,6 +54,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
 
+    // user that creates this room is the first person to join the room 
     @SubscribeMessage('createRoom')
     handleEvent4(
         @MessageBody() data: any,
@@ -72,7 +73,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // console.log('createRoom Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
     }
 
-
+    // user joining the room are second onwards
     @SubscribeMessage('joinRoom')
     handleEvent5(
         @MessageBody() data: any,
@@ -97,6 +98,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         game?.addPlayer(data.username);
         
+        game?.playerSelectWord()
 
         // let drawer =
         // if(game){

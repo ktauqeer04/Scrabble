@@ -20,6 +20,7 @@ export default class Game {
     round: any;
     gameState: gameState;
     allGuesses: boolean[];
+    playerIdx: number
 
     constructor() {
         this.players = [];       
@@ -33,6 +34,7 @@ export default class Game {
         this.timer = null;
         this.gameState = gameState.WAITING;
         this.allGuesses = [];
+        this.playerIdx = 0
     }
 
 
@@ -40,17 +42,28 @@ export default class Game {
         this.guessWords = words
         // console.log('guessWords', this.guessWords)
         this.addPlayer(player)
-        this.gameState = gameState.IN_PROGRESS;
-        const result = this.roundStart(0);
+        this.gameState = gameState.WAITING;
+        const result = this.roundStart();
     }
 
     addPlayer(player: string) {
+
         if(this.players.includes(player)) return;
+
+        if(this.gameState === gameState.IN_PROGRESS){
+            this.players.push(player)
+            return;
+        }
+
         this.players.push(player)
+        this.gameState = gameState.IN_PROGRESS;
+        
+        this.roundStart();
+
         // console.log('addPlayer: player added', this.players)
     }
 
-    roundStart(playeridx: number){
+    roundStart(){
 
         if(this.players.length < 2) {
             return;
@@ -58,7 +71,7 @@ export default class Game {
         
         this.allGuesses = new Array(this.guessers.length).fill(false);
 
-        const result = this.playerSelectWord(playeridx);
+        const result = this.playerSelectWord();
 
         if(!result) return;
 
@@ -71,16 +84,17 @@ export default class Game {
 
     }
 
-    playerSelectWord(playeridx: number) {
+    playerSelectWord() {
 
         if(this.drawer) return;
-        this.drawer = this.players[playeridx];
+        this.drawer = this.players[this.playerIdx];
 
         const threeWords = this.guessWords.sort(() => 0.5 - Math.random()).slice(0, 3);
 
         return { 
             drawer: this.drawer, 
-            guessWords: threeWords 
+            guessWords: threeWords,
+            playeridx: this.playerIdx++
         };
 
     }
