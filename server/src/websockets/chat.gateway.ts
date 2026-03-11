@@ -28,10 +28,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     ): any {
 
+        const game = this.rooms.get(data.room);
         // console.log('draw Event: Received drawing data:', data);
         client.to(data.room).emit('updateDrawing', data.payload)
+        console.log(data.room);
+        console.log(game);
 
-        return true;
+        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
 
     }
 
@@ -41,6 +44,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket,
     ){
         // console.log('chatMessage Event: Received chat message:', data);
+        const game = this.rooms.get(data.room);
+        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         client.to(data.room).emit('receiveChatMessage', data.message)
         // console.log('chatMessage Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
     }
@@ -50,6 +55,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: { room: string },
         @ConnectedSocket() client: Socket,
     ){
+        const game = this.rooms.get(data.room)
+        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         client.to(data.room).emit('updateCanvas')
     }
 
@@ -68,6 +75,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const game = new Game();
         this.rooms.set(data.room, game);
         game.startGame(data.username);
+
+        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         // console.log('createRoom Event: client joined', client.id)
         // console.log(`createRoom Event: Client ${client.id} is in rooms:`, client.rooms);
         // console.log('createRoom Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
@@ -75,37 +84,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // user joining the room are second onwards
     @SubscribeMessage('joinRoom')
-    handleEvent5(
-        @MessageBody() data: any,
-        @ConnectedSocket() client: Socket,
-    ){
-        console.log('joinRoom Event: Joined Room', client.rooms);
-        if(!this.rooms.has(data.room)){
-            client.emit('roomNotExists', {
-                message: 'Room does not exist',
-                flag: true
-            });
+    handleEvent5(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+        if (!this.rooms.has(data.room)) {
+            client.emit('roomNotExists', { message: 'Room does not exist', flag: false });
             return;
         }
-        client.join(data.room)
 
-        client.emit('joinedRoom', {
-            message: 'Joined Room Successfully',
-            flag: false
-        })
-        
         const game = this.rooms.get(data.room);
+        const addplayer = game?.addPlayer(data.username);
 
-        game?.addPlayer(data.username);
-        
-        game?.playerSelectWord()
+        if (addplayer?.success == false) {
+            console.log('triggers in if');
+            client.emit('cannot-join-game', addplayer.message); // emit to client, not room
+            return;
+        }
 
-        // let drawer =
-        // if(game){
-        //     game.addPlayer(client.id);
-        //     game.roundStart(0);
-        // }
+        console.log('triggers after if')
 
+        client.join(data.room); // ← join first
+
+        client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
+
+        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // ← server.to not client.to
     }
 
 
@@ -114,7 +114,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: { room: string, message: string},
         @ConnectedSocket() client: Socket,
     ){
+
         client.join(data.room)
+
+        const game = this.rooms.get(data.room);
+        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
+
+
         console.log('refreshPage Event: Page refreshed in room', data.room)
     }
 

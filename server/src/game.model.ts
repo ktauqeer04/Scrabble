@@ -10,45 +10,57 @@ enum gameState {
 export default class Game {
 
     players: string[];
-    guessWords: any;
-    winnerStack: any;
-    currentWord: any;
-    guessers: any;
-    drawer: any;
-    scoreBoard: any;
+    guessWords: string[];
+    winnerStack: [];
+    currentWord: string;
+    guessers: string[];
+    drawer: string;
+    scoreBoard: {};
     timer: any;
-    round: any;
+    round: number;
     gameState: gameState;
-    allGuesses: boolean[];
+    correctGuesses: boolean[];
     playerIdx: number
 
     constructor() {
         this.players = [];       
-        this.guessWords = [];
+        this.guessWords = words;
         this.winnerStack = [];
+        this.currentWord = '';
         this.guessers = [];
+        this.drawer = '';
         this.scoreBoard = new Map<string, number>();
-        this.round = 1;
-        this.currentWord = null;
-        this.drawer = null;
         this.timer = null;
+        this.round = 1;
         this.gameState = gameState.WAITING;
-        this.allGuesses = [];
+        this.correctGuesses = [];
         this.playerIdx = 0
     }
 
 
     startGame(player: any) {
-        this.guessWords = words
         // console.log('guessWords', this.guessWords)
         this.addPlayer(player)
         this.gameState = gameState.WAITING;
-        const result = this.roundStart();
     }
 
     addPlayer(player: string) {
 
-        if(this.players.includes(player)) return;
+        console.log('player array size', this.players.length);
+
+        if(this.players.includes(player)){
+            return {
+                success: false,
+                message: "Player already in game"
+            }
+        };
+
+        if(this.players.length == 3){
+            return {
+                success: false,
+                message: "Room full"
+            }
+        }
 
         if(this.gameState === gameState.IN_PROGRESS){
             this.players.push(player)
@@ -60,6 +72,8 @@ export default class Game {
         
         this.roundStart();
 
+        return { success: true };
+
         // console.log('addPlayer: player added', this.players)
     }
 
@@ -69,7 +83,7 @@ export default class Game {
             return;
         }
         
-        this.allGuesses = new Array(this.guessers.length).fill(false);
+        this.correctGuesses = new Array(this.guessers.length).fill(false);
 
         const result = this.playerSelectWord();
 
@@ -107,7 +121,7 @@ export default class Game {
     }
 
     roundEnd() {
-        if(this.allGuesses.every(guess => guess === true) || this.timer === 0) {
+        if(this.correctGuesses.every(guess => guess === true) || this.timer === 0) {
             // Handle round end logic
         }
     }
@@ -122,11 +136,16 @@ export default class Game {
             players: this.players, 
             round: this.round,
             currentWord: this.currentWord,
-            guessers: this.guessers,
-            drawer: this.drawer,
             scoreBoard: this.scoreBoard,
             timer: this.timer,
-            winnerStack: this.winnerStack
+            winnerStack: this.winnerStack,
+            chooser: {
+                guessWords: this.guessWords,
+                drawer: this.drawer
+            },
+            allGuessers: {
+                guessers: this.guessers,
+            }
         }
     }
 
