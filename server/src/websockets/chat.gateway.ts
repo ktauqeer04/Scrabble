@@ -8,15 +8,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     server: Server;
 
     private rooms: Map<string, Game> = new Map();
-
+    private userSockets: Map<string, string> = new Map();
     //let rooms: 
 
     handleDisconnect(client: Socket) {
-        // console.log('Client disconnected:', client.id);
+        console.log('Client disconnect in handle Disconnection:', client.id);
+        this.userSockets.forEach((socketId, username) => {
+            if(socketId === client.id){
+                console.log(username, socketId);
+                this.userSockets.delete(username);
+            }
+        })
     }
 
     handleConnection(client: Socket, ...args: any[]) {
-        // console.log('client Connected', client.id);
+        console.log('client Connected in handle connection', client.id);
         // console.log(`total number of client is in rooms:`, Object.keys(client.connected).length);
     }
 
@@ -67,8 +73,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ){
-        // console.log('createRoom Event: Received room message:', data);
+        console.log('createRoom Event: Received room message:', data);
         client.join(data.room);
+        this.userSockets.set(data.username, client.id);
         // this.server.to(data.room).emit()
         console.log('createRoom fired', client.id) 
 
@@ -85,6 +92,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // user joining the room are second onwards
     @SubscribeMessage('joinRoom')
     handleEvent5(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+
         if (!this.rooms.has(data.room)) {
             client.emit('roomNotExists', { message: 'Room does not exist', flag: false });
             return;
@@ -99,27 +107,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        console.log('triggers after if')
+        this.userSockets.set(data.username, client.id);
 
-        client.join(data.room); // ← join first
+        // console.log('triggers after if')
+
+        client.join(data.room); 
 
         client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
 
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // ← server.to not client.to
+        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
     }
 
 
     @SubscribeMessage('refreshPage')
     handleEvent6(
-        @MessageBody() data: { room: string, message: string},
+        @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ){
 
+        console.log('refreshPage Event: Data', data);
         client.join(data.room)
 
         const game = this.rooms.get(data.room);
+        this.userSockets.set(data.username, client.id);
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
-
 
         console.log('refreshPage Event: Page refreshed in room', data.room)
     }

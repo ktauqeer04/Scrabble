@@ -46,7 +46,7 @@ export default class Game {
 
     addPlayer(player: string) {
 
-        console.log('player array size', this.players.length);
+        // console.log('player array size', this.players.length);
 
         if(this.players.includes(player)){
             return {
