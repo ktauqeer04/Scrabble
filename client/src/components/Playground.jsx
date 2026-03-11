@@ -1,7 +1,16 @@
 import Canvas from './Canvas';
 import ChatRoom from './ChatRoom';
+import { useEffect, useState } from 'react'
 
 function Playground({ socket, roomCode }) {
+
+    useEffect(() => {
+        socket.on('game-snapshot', (data) => {
+            console.log('data from game snapshot', data)
+        })
+
+        return () => socket.off('game-snapshot')
+    })
 
   return (
     <div className="flex h-screen">

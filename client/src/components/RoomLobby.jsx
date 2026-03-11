@@ -37,7 +37,7 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
   const [username, setUsername]         = useState("");
   const [selectedChar, setSelectedChar] = useState(null);
   const [toast, setToast]               = useState("");
-  const [roomFlag, setRoomFlag]         = useState(false);
+  const [roomFlag, setRoomFlag]         = useState(null);
 
   const navigate = useNavigate();
 
@@ -73,7 +73,7 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
   useEffect(() => {
     socket.on("roomNotExists", (data) => {
       console.log("Received roomNotExists event:", data);
-      setRoomFlag(data.flag);
+      setRoomFlag(data.flag); // flag = false don't proceed
       showToast("Room does not exist!");
     })
     return () => socket.off("roomNotExists");
@@ -82,10 +82,19 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
   useEffect(() => {
     socket.on("joinedRoom", (data) => {
       console.log("Received roomJoined event:", data);
-      setRoomFlag(data.flag);
+      if(data.flag == true) navigate("/game");
     })
     return () => socket.off("roomJoined");
   }, [socket, showToast]);
+
+  useEffect(() => {
+    socket.on("cannot-join-game", (data) => {
+      console.log('cannot-join-game event:', data);
+      showToast("Cannot join game");
+    })
+
+    return () => socket.off("cannot-join-game");
+  })
 
   return (
     <>
@@ -173,7 +182,6 @@ export default function RoomLobby({ socket, roomCode, setRoomCode }) {
               className="btn btn-join"
               onClick={() => {
                 handleJoin();
-                if(!roomFlag) navigate("/game");
               }}
               disabled={!canProceed}
             >
