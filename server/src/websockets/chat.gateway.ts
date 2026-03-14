@@ -116,6 +116,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
 
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
+
+        
+
     }
 
 
