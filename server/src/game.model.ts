@@ -1,10 +1,10 @@
 import words from "./words";
 
-enum gameState {
+enum GameState {
     WAITING = 'waiting',
     PLAYER_CHOOSING = 'player_choosing',
     PLAYER_GUESSING = 'player_guessing',
-    IN_PROGRESS = 'in_progress',
+    HIDDEN_WORD='hidder_word',
     ENDED = 'ended'
 }
 
@@ -20,10 +20,12 @@ export default class Game {
     scoreBoard: {};
     timer: NodeJS.Timeout | undefined;
     round: number;
-    gameState: gameState;
+    gameState: GameState;
     correctGuesses: boolean[];
     playerIdx: number
     completeAction: (() => void) | null;
+    timerStartedAt: number | null;
+    timerDuration: number;
 
     constructor() {
         this.players = [];       
@@ -35,7 +37,7 @@ export default class Game {
         this.scoreBoard = new Map<string, number>();
         this.timer = undefined;
         this.round = 1;
-        this.gameState = gameState.WAITING;
+        this.gameState = GameState.WAITING;
         this.correctGuesses = [];
         this.playerIdx = 0
         this.completeAction = null
@@ -45,7 +47,7 @@ export default class Game {
     startGame(player: any) {
         // console.log('guessWords', this.guessWords)
         this.addPlayer(player)
-        this.gameState = gameState.WAITING;
+        this.gameState = GameState.WAITING;
     }
 
     addPlayer(player: string) {
@@ -66,13 +68,13 @@ export default class Game {
             }
         }
 
-        if(this.gameState === gameState.IN_PROGRESS){
+        if(this.gameState === GameState.PLAYER_CHOOSING){
             this.players.push(player)
             return;
         }
 
         this.players.push(player)
-        this.gameState = gameState.IN_PROGRESS;
+        this.gameState = GameState.PLAYER_CHOOSING;
         
         this.roundStart();
 
@@ -93,7 +95,8 @@ export default class Game {
         }
 
         this.playerSelectWord(() => {
-
+            this.gameState = GameState.PLAYER_GUESSING;
+            
         });
 
     }
@@ -112,13 +115,17 @@ export default class Game {
 
         let isDone = false;
 
-        this.gameState = gameState.PLAYER_CHOOSING;
+        this.gameState = GameState.PLAYER_CHOOSING;
         this.guessers = this.players.filter((_, playeridx) => playeridx !== this.playerIdx)
         this.drawer = this.players[this.playerIdx];
         this.correctGuesses = new Array(this.guessers.length).fill(false);
 
         const threeWords = this.guessWords.sort(() => 0.5 - Math.random()).slice(0, 3);
         this.guessWords = threeWords
+
+
+        this.timerStartedAt = Date.now();
+        this.timerDuration = 60000;
 
         this.timer = setTimeout(() => {
             if(isDone) return;
@@ -141,7 +148,7 @@ export default class Game {
 
     playersStartGuessingWord(word: string, player: string) {
 
-        this.gameState = gameState.PLAYER_GUESSING;
+        this.gameState = GameState.PLAYER_GUESSING;
 
         // condition : correct word scores the player some point's
         if(word === this.currentWord && this.guessers.includes(player)) {
@@ -158,23 +165,117 @@ export default class Game {
 
     }
 
+    getTime() {
+
+        if(!this.timerStartedAt) return 0;
+
+        const elapsed = Date.now() - this.timerStartedAt;
+        const remainingTime = this.timerDuration - elapsed;
+
+        return Math.max(0, Math.floor(remainingTime / 1000));
+
+    }
+
     getSnapshot() {
-        return {
-            gamestate: this.gameState,
-            players: this.players, 
-            round: this.round,
-            currentWord: this.currentWord,
-            scoreBoard: this.scoreBoard,
-            timer: this.timer,
-            winnerStack: this.winnerStack,
-            chooser: {
-                guessWords: this.guessWords,
-                drawer: this.drawer
-            },
-            allGuessers: {
-                guessers: this.guessers,
-            }
+
+        switch(this.gameState){
+            case GameState.WAITING:
+                return {
+                    gamestate: this.gameState,
+                    players: this.players, 
+                    round: this.round,
+                    currentWord: this.currentWord,
+                    scoreBoard: this.scoreBoard,
+                    // timer: this.timer,
+                    winnerStack: this.winnerStack,
+                    chooser: {
+                        guessWords: this.guessWords,
+                        drawer: this.drawer
+                    },
+                    allGuessers: {
+                        guessers: this.guessers,
+                    },
+                    timeLeft: this.getTime()
+                }
+            
+            case GameState.PLAYER_CHOOSING:
+                return {
+                    gamestate: this.gameState,
+                    players: this.players, 
+                    round: this.round,
+                    currentWord: this.currentWord,
+                    scoreBoard: this.scoreBoard,
+                    // timer: this.timer,
+                    winnerStack: this.winnerStack,
+                    chooser: {
+                        guessWords: this.guessWords,
+                        drawer: this.drawer
+                    },
+                    allGuessers: {
+                        guessers: this.guessers,
+                    },
+                    timeLeft: this.getTime()
+                }
+
+            case GameState.PLAYER_GUESSING:
+                return {
+                    gamestate: this.gameState,
+                    players: this.players, 
+                    round: this.round,
+                    currentWord: this.currentWord,
+                    scoreBoard: this.scoreBoard,
+                    // timer: this.timer,
+                    winnerStack: this.winnerStack,
+                    chooser: {
+                        guessWords: this.guessWords,
+                        drawer: this.drawer
+                    },
+                    allGuessers: {
+                        guessers: this.guessers,
+                    },
+                    timeLeft: this.getTime()
+                }
+            
+            case GameState.HIDDEN_WORD : 
+                return {
+                    gamestate: this.gameState,
+                    players: this.players, 
+                    round: this.round,
+                    currentWord: this.currentWord,
+                    scoreBoard: this.scoreBoard,
+                    // timer: this.timer,
+                    winnerStack: this.winnerStack,
+                    chooser: {
+                        guessWords: this.guessWords,
+                        drawer: this.drawer
+                    },
+                    allGuessers: {
+                        guessers: this.guessers,
+                    },
+                    timeLeft: this.getTime()
+                }
+            
+            case GameState.ENDED:
+                return {
+                    gamestate: this.gameState,
+                    players: this.players, 
+                    round: this.round,
+                    currentWord: this.currentWord,
+                    scoreBoard: this.scoreBoard,
+                    timer: this.timer,
+                    winnerStack: this.winnerStack,
+                    chooser: {
+                        guessWords: this.guessWords,
+                        drawer: this.drawer
+                    },
+                    allGuessers: {
+                        guessers: this.guessers,
+                    },
+                    timeLeft: this.getTime()
+                }
+            
         }
+
     }
 
     playerScored(){

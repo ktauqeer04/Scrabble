@@ -35,6 +35,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ): any {
 
         const game = this.rooms.get(data.room);
+        console.log('Draw Event: game from room', typeof game);
         // console.log('draw Event: Received drawing data:', data);
         client.to(data.room).emit('updateDrawing', data.payload)
         console.log(data.room);
