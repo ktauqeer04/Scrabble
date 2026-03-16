@@ -82,7 +82,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const game = new Game();
         this.rooms.set(data.room, game);
-        game.startGame(data.username);
+        game.startGame();
+        game.addPlayer(data.username);
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         // console.log('createRoom Event: client joined', client.id)

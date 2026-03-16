@@ -4,7 +4,7 @@ enum GameState {
     WAITING = 'waiting',
     PLAYER_CHOOSING = 'player_choosing',
     PLAYER_GUESSING = 'player_guessing',
-    HIDDEN_WORD='hidder_word',
+    HIDDEN_WORD='hidden_word',
     ENDED = 'ended'
 }
 
@@ -44,43 +44,41 @@ export default class Game {
     }
 
 
-    startGame(player: any) {
+    startGame() {
         // console.log('guessWords', this.guessWords)
-        this.addPlayer(player)
         this.gameState = GameState.WAITING;
     }
 
+    // start of the game, 
+    // middle of the game
+    // end of the game
+    // second player joins -> gamestate is still waiting
+    // remaining player joins -> gameState is whatever will be, but not waiting (probably)
     addPlayer(player: string) {
 
-        // console.log('player array size', this.players.length);
 
         if(this.players.includes(player)){
-            return {
-                success: false,
-                message: "Player already in game"
-            }
+            return { success: false, message: "Player already in game" }
         };
 
         if(this.players.length == 3){
-            return {
-                success: false,
-                message: "Room full"
-            }
+            return { success: false, message: "Room full" }
         }
 
         if(this.gameState === GameState.PLAYER_CHOOSING){
-            this.players.push(player)
-            return;
+            this.players.push(player) 
+            return { success: true };
         }
 
-        this.players.push(player)
-        this.gameState = GameState.PLAYER_CHOOSING;
-        
-        this.roundStart();
+        this.players.push(player);
+
+        // only change state when second player joins
+        if(this.players.length === 2) {
+            this.gameState = GameState.PLAYER_CHOOSING;
+            this.roundStart(); // ← only starts when second player joins
+        }
 
         return { success: true };
-
-        // console.log('addPlayer: player added', this.players)
     }
 
 
@@ -90,14 +88,13 @@ export default class Game {
     // round starts  
     roundStart(){
 
-        if(this.players.length < 2) {
-            return;
-        }
+
+        console.log(this.players);
 
         this.playerSelectWord(() => {
-            this.gameState = GameState.PLAYER_GUESSING;
-            
-        });
+            this.gameState = GameState.PLAYER_GUESSING
+        })
+
 
     }
 
@@ -109,7 +106,7 @@ export default class Game {
     // player selection will be over once the player has selected the 
     // word or the timer has ran out in which a random word will be given
 
-    playerSelectWord(onComplete: () => void) {
+    playerSelectWord(onCompleteSelect: () => void) {
         
         if(this.drawer) return;
 
@@ -131,7 +128,7 @@ export default class Game {
             if(isDone) return;
             isDone = true;
 
-            onComplete();
+            onCompleteSelect();
         }, 60000)
 
         this.completeAction = () => {
@@ -140,20 +137,41 @@ export default class Game {
 
             clearTimeout(this.timer);
             console.log('Action Manually Completed');
-            onComplete()
+            onCompleteSelect()
         }
 
 
     }
 
-    playersStartGuessingWord(word: string, player: string) {
 
-        this.gameState = GameState.PLAYER_GUESSING;
+    // player Guessed Scenario: 
+    // after the player chooses the word
+    // the guessers have to guess the word
+    // this will work until the timer runs out or all players have guessed the word
+
+    playersStartGuessingWord(word: string, player: string, onCompleteGuessed: (() => void)) {
 
         // condition : correct word scores the player some point's
         if(word === this.currentWord && this.guessers.includes(player)) {
             // condition : all players have guessed the word except the last one
             this.playerScored();
+        }
+
+        let isDone = false;
+
+        this.timer = setTimeout(() => {
+            if(isDone) return;
+            isDone = true;
+
+            onCompleteGuessed();
+        }, 120000);
+
+        this.completeAction = () => {
+            if(isDone) return;
+            isDone = true;
+
+            clearTimeout(this.timer);
+            onCompleteGuessed();
         }
 
     }
