@@ -1,6 +1,6 @@
 import words from "./words";
 
-enum GameState {
+export enum GameState {
     WAITING = 'waiting',
     PLAYER_CHOOSING = 'player_choosing',
     PLAYER_GUESSING = 'player_guessing',
@@ -54,7 +54,7 @@ export default class Game {
     // end of the game
     // second player joins -> gamestate is still waiting
     // remaining player joins -> gameState is whatever will be, but not waiting (probably)
-    addPlayer(player: string) {
+    addPlayer(player: string, onComplete?: () => void) {
 
 
         if(this.players.includes(player)){
@@ -75,7 +75,7 @@ export default class Game {
         // only change state when second player joins
         if(this.players.length === 2) {
             this.gameState = GameState.PLAYER_CHOOSING;
-            this.roundStart(); // ← only starts when second player joins
+            if(onComplete) this.roundStart(onComplete); 
         }
 
         return { success: true };
@@ -86,13 +86,13 @@ export default class Game {
     // each player receives a chance of drawing
     // in other words: if there are 5 players playing, each will receive a chance of drawing and the remaining ones have to guess
     // round starts  
-    roundStart(){
+    roundStart(onComplete: () => void){
 
 
         console.log(this.players);
 
         this.playerSelectWord(() => {
-            this.gameState = GameState.PLAYER_GUESSING
+            onComplete();
         })
 
 
@@ -128,6 +128,9 @@ export default class Game {
             if(isDone) return;
             isDone = true;
 
+            const randomWord = this.guessWords[Math.floor(Math.random() * this.guessWords.length)];
+            this.wordSelected(randomWord);
+
             onCompleteSelect();
         }, 60000)
 
@@ -139,7 +142,6 @@ export default class Game {
             console.log('Action Manually Completed');
             onCompleteSelect()
         }
-
 
     }
 
@@ -173,6 +175,13 @@ export default class Game {
             clearTimeout(this.timer);
             onCompleteGuessed();
         }
+
+    }
+
+    wordSelected(word: any) {
+
+        this.currentWord = word;
+        this.gameState = GameState.PLAYER_GUESSING;
 
     }
 
