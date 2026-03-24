@@ -104,6 +104,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const addplayer = game?.addPlayer(data.username, (() => {
 
             this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+            
         }));
 
         if (addplayer?.success == false) {

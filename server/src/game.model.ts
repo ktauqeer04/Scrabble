@@ -26,6 +26,9 @@ export default class Game {
     completeAction: (() => void) | null;
     timerStartedAt: number | null;
     timerDuration: number;
+    choosingTime: number;
+    guessingTime: number;
+
 
     constructor() {
         this.players = [];       
@@ -41,6 +44,8 @@ export default class Game {
         this.correctGuesses = [];
         this.playerIdx = 0
         this.completeAction = null
+        this.choosingTime = 30000;
+        this.guessingTime = 120000;
     }
 
 
@@ -88,13 +93,11 @@ export default class Game {
     // round starts  
     roundStart(onComplete: () => void){
 
-
         console.log(this.players);
 
         this.playerSelectWord(() => {
             onComplete();
         })
-
 
     }
 
@@ -122,7 +125,6 @@ export default class Game {
 
 
         this.timerStartedAt = Date.now();
-        this.timerDuration = 60000;
 
         this.timer = setTimeout(() => {
             if(isDone) return;
@@ -132,7 +134,7 @@ export default class Game {
             this.wordSelected(randomWord);
 
             onCompleteSelect();
-        }, 60000)
+        }, 30000)
 
         this.completeAction = () => {
             if(isDone) return;
@@ -153,6 +155,10 @@ export default class Game {
 
     playersStartGuessingWord(word: string, player: string, onCompleteGuessed: (() => void)) {
 
+        if(this.gameState != GameState.PLAYER_GUESSING){
+            return;
+        }
+
         // condition : correct word scores the player some point's
         if(word === this.currentWord && this.guessers.includes(player)) {
             // condition : all players have guessed the word except the last one
@@ -160,6 +166,8 @@ export default class Game {
         }
 
         let isDone = false;
+
+        this.timerStartedAt = Date.now();
 
         this.timer = setTimeout(() => {
             if(isDone) return;
@@ -181,6 +189,7 @@ export default class Game {
     wordSelected(word: any) {
 
         this.currentWord = word;
+        console.log('word selected getting invoked');
         this.gameState = GameState.PLAYER_GUESSING;
 
     }
@@ -192,14 +201,19 @@ export default class Game {
 
     }
 
-    getTime() {
+    getTime(timerDuration: number) {
 
         if(!this.timerStartedAt) return 0;
 
         const elapsed = Date.now() - this.timerStartedAt;
-        const remainingTime = this.timerDuration - elapsed;
+        const remainingTime = timerDuration - elapsed;
 
         return Math.max(0, Math.floor(remainingTime / 1000));
+
+    }
+
+
+    playerScored(){
 
     }
 
@@ -222,7 +236,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime()
+                    // timeLeft: this.getTime()
                 }
             
             case GameState.PLAYER_CHOOSING:
@@ -241,7 +255,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime()
+                    timeLeft: this.getTime(this.choosingTime)
                 }
 
             case GameState.PLAYER_GUESSING:
@@ -260,7 +274,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime()
+                    timeLeft: this.getTime(this.guessingTime)
                 }
             
             case GameState.HIDDEN_WORD : 
@@ -279,7 +293,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime()
+                    timeLeft: this.getTime(3000)
                 }
             
             case GameState.ENDED:
@@ -298,14 +312,10 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime()
+                    // timeLeft: this.getTime()
                 }
             
         }
-
-    }
-
-    playerScored(){
 
     }
 
