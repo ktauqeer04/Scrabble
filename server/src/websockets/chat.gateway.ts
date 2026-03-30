@@ -101,11 +101,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
 
         const game = this.rooms.get(data.room);
+
+
         const addplayer = game?.addPlayer(data.username, (() => {
+
+            game?.startGuessingPhase(() => {
+
+                game?.nextTurn(
+                () => {
+                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+                },
+                () => {
+                    game?.roundEnd();
+                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+                })
+
+                this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+
+            })
 
             this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
             
         }));
+
 
         if (addplayer?.success == false) {
             console.log('triggers in if');

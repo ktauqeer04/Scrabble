@@ -44,13 +44,12 @@ export default class Game {
         this.correctGuesses = [];
         this.playerIdx = 0
         this.completeAction = null
-        this.choosingTime = 30000;
-        this.guessingTime = 120000;
+        this.choosingTime = 20000;
+        this.guessingTime = 25000;
     }
 
 
     startGame() {
-        // console.log('guessWords', this.guessWords)
         this.gameState = GameState.WAITING;
     }
 
@@ -134,7 +133,7 @@ export default class Game {
             this.wordSelected(randomWord);
 
             onCompleteSelect();
-        }, 30000)
+        }, 20000)
 
         this.completeAction = () => {
             if(isDone) return;
@@ -153,16 +152,10 @@ export default class Game {
     // the guessers have to guess the word
     // this will work until the timer runs out or all players have guessed the word
 
-    playersStartGuessingWord(word: string, player: string, onCompleteGuessed: (() => void)) {
+    startGuessingPhase(onCompleteGuessed: (() => void)){
 
         if(this.gameState != GameState.PLAYER_GUESSING){
             return;
-        }
-
-        // condition : correct word scores the player some point's
-        if(word === this.currentWord && this.guessers.includes(player)) {
-            // condition : all players have guessed the word except the last one
-            this.playerScored();
         }
 
         let isDone = false;
@@ -174,7 +167,7 @@ export default class Game {
             isDone = true;
 
             onCompleteGuessed();
-        }, 120000);
+        }, 25000);
 
         this.completeAction = () => {
             if(isDone) return;
@@ -186,6 +179,16 @@ export default class Game {
 
     }
 
+    checkGuess(word: string, player: string){
+
+        if(word === this.currentWord && this.guessers.includes(player)) {
+            // condition : all players have guessed the word except the last one
+            this.playerScored();
+        }
+
+    }
+
+
     wordSelected(word: any) {
 
         this.currentWord = word;
@@ -194,7 +197,35 @@ export default class Game {
 
     }
 
+
+    // recursion function that will on break once a single round has 
+    nextTurn(onBroadcast: () => void, onRoundComplete: () => void){
+        this.playerIdx += 1;
+        this.drawer = '';
+        this.currentWord = '';
+        this.correctGuesses = new Array(this.guessers.length).fill(false);
+
+        if(this.playerIdx >= this.players.length){
+            this.playerIdx = 0;
+            onRoundComplete();
+            return;
+        }
+
+        this.playerSelectWord(() => {
+            console.log('Next turn playerSelect log')
+            onBroadcast();
+            this.startGuessingPhase(() => {
+                onBroadcast();
+                this.nextTurn(onBroadcast, onRoundComplete);
+            })
+        })
+
+    }
+
     roundEnd() {
+
+        console.log('Round has successfully ended');
+
     }
 
     endGame() {
