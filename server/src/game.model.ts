@@ -215,6 +215,7 @@ export default class Game {
             console.log('Next turn playerSelect log')
             onBroadcast();
             this.startGuessingPhase(() => {
+                this.gameState = GameState.PLAYER_CHOOSING
                 onBroadcast();
                 this.nextTurn(onBroadcast, onRoundComplete);
             })
