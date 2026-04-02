@@ -23,7 +23,8 @@ export default class Game {
     gameState: GameState;
     correctGuesses: boolean[];
     playerIdx: number
-    completeAction: (() => void) | null;
+    completeChooseAction: (() => void) | null;
+    completeGuessAction: (() => void) | null;
     timerStartedAt: number | null;
     timerDuration: number;
     choosingTime: number;
@@ -43,7 +44,8 @@ export default class Game {
         this.gameState = GameState.WAITING;
         this.correctGuesses = [];
         this.playerIdx = 0
-        this.completeAction = null
+        this.completeChooseAction = null
+        this.completeGuessAction = null
         this.choosingTime = 20000;
         this.guessingTime = 25000;
     }
@@ -69,20 +71,18 @@ export default class Game {
             return { success: false, message: "Room full" }
         }
 
-        if(this.gameState === GameState.PLAYER_CHOOSING){
-            this.players.push(player) 
-            return { success: true };
-        }
+        // if(this.gameState === GameState.PLAYER_CHOOSING){
+        //     this.players.push(player);
+        //     this.guessers.push(player);
+        //     return { success: true };
+        // }
 
         this.players.push(player);
+        this.guessers.push(player);
 
-        // only change state when second player joins
-        if(this.players.length === 2) {
-            this.gameState = GameState.PLAYER_CHOOSING;
-            if(onComplete) this.roundStart(onComplete); 
-        }
 
         return { success: true };
+
     }
 
 
@@ -110,11 +110,12 @@ export default class Game {
 
     playerSelectWord(onCompleteSelect: () => void) {
         
+        
+
         if(this.drawer) return;
 
         let isDone = false;
 
-        this.gameState = GameState.PLAYER_CHOOSING;
         this.guessers = this.players.filter((_, playeridx) => playeridx !== this.playerIdx)
         this.drawer = this.players[this.playerIdx];
         this.correctGuesses = new Array(this.guessers.length).fill(false);
@@ -131,13 +132,16 @@ export default class Game {
 
             const randomWord = this.guessWords[Math.floor(Math.random() * this.guessWords.length)];
             this.wordSelected(randomWord);
+            this.gameState = GameState.PLAYER_GUESSING;
 
             onCompleteSelect();
         }, 20000)
 
-        this.completeAction = () => {
+        this.completeChooseAction = () => {
             if(isDone) return;
             isDone = true;
+
+            this.gameState = GameState.PLAYER_GUESSING;
 
             clearTimeout(this.timer);
             console.log('Action Manually Completed');
@@ -154,9 +158,7 @@ export default class Game {
 
     startGuessingPhase(onCompleteGuessed: (() => void)){
 
-        if(this.gameState != GameState.PLAYER_GUESSING){
-            return;
-        }
+        this.gameState = GameState.PLAYER_GUESSING;
 
         let isDone = false;
 
@@ -166,12 +168,16 @@ export default class Game {
             if(isDone) return;
             isDone = true;
 
+            this.gameState = GameState.PLAYER_CHOOSING;
+
             onCompleteGuessed();
         }, 25000);
 
-        this.completeAction = () => {
+        this.completeGuessAction = () => {
             if(isDone) return;
             isDone = true;
+
+            this.gameState = GameState.PLAYER_CHOOSING;
 
             clearTimeout(this.timer);
             onCompleteGuessed();
@@ -200,10 +206,15 @@ export default class Game {
 
     // recursion function that will on break once a single round has 
     nextTurn(onBroadcast: () => void, onRoundComplete: () => void){
+
+        console.log("player index ", this.playerIdx);
+        console.log("player length", this.players.length);
+
         this.playerIdx += 1;
         this.drawer = '';
         this.currentWord = '';
         this.correctGuesses = new Array(this.guessers.length).fill(false);
+        this.gameState = GameState.PLAYER_CHOOSING;
 
         if(this.playerIdx >= this.players.length){
             this.playerIdx = 0;
@@ -215,7 +226,6 @@ export default class Game {
             console.log('Next turn playerSelect log')
             onBroadcast();
             this.startGuessingPhase(() => {
-                this.gameState = GameState.PLAYER_CHOOSING
                 onBroadcast();
                 this.nextTurn(onBroadcast, onRoundComplete);
             })

@@ -103,26 +103,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const game = this.rooms.get(data.room);
 
 
-        const addplayer = game?.addPlayer(data.username, (() => {
-
-            game?.startGuessingPhase(() => {
-
-                game?.nextTurn(
-                () => {
-                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
-                },
-                () => {
-                    game?.roundEnd();
-                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
-                })
-
-                this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
-
-            })
-
-            this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
-            
-        }));
+        const addplayer = game?.addPlayer(data.username);
 
 
         if (addplayer?.success == false) {
@@ -142,6 +123,39 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
 
         
+
+    }
+
+
+    @SubscribeMessage('Start-Game')
+    handleEventStartGame(
+        @MessageBody() data: any,
+        @ConnectedSocket() client: Socket,
+    ){
+
+        console.log('event triggers with data', data.room) 
+        const game = this.rooms.get(data.room);
+
+        game?.roundStart(() => {
+
+            game.startGuessingPhase(() => {
+
+                game.nextTurn(
+                () => {
+                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+                },
+                () => {
+                    game.roundEnd();
+                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+                })
+
+                this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+
+            })
+
+            this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+
+        })
 
     }
 
@@ -171,9 +185,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         console.log('Chosen Word Event: chosen word is', data.chosenWord);
         const game = this.rooms.get(data.room);
         game?.wordSelected(data.chosenWord);
-        game?.completeAction?.();
+        game?.completeChooseAction?.();
 
-        this.server.to(data.room).emit('game-snapeshot', game?.getSnapshot());
+        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
     }
 
 }
