@@ -18,7 +18,8 @@ export default class Game {
     guessers: string[];
     drawer: string;
     scoreBoard: {};
-    timer: NodeJS.Timeout | undefined;
+    chooseTimer: NodeJS.Timeout | undefined;
+    guessTimer: NodeJS.Timeout | undefined;
     round: number;
     gameState: GameState;
     correctGuesses: boolean[];
@@ -39,7 +40,8 @@ export default class Game {
         this.guessers = [];
         this.drawer = '';
         this.scoreBoard = new Map<string, number>();
-        this.timer = undefined;
+        this.chooseTimer = undefined;
+        this.guessTimer = undefined;
         this.round = 1;
         this.gameState = GameState.WAITING;
         this.correctGuesses = [];
@@ -93,6 +95,7 @@ export default class Game {
     roundStart(onComplete: () => void){
 
         console.log(this.players);
+        this.gameState = GameState.PLAYER_CHOOSING;
 
         this.playerSelectWord(() => {
             onComplete();
@@ -109,15 +112,12 @@ export default class Game {
     // word or the timer has ran out in which a random word will be given
 
     playerSelectWord(onCompleteSelect: () => void) {
-        
-        
-
-        if(this.drawer) return;
 
         let isDone = false;
 
-        this.guessers = this.players.filter((_, playeridx) => playeridx !== this.playerIdx)
+        this.guessers = this.players.filter((_, playeridx) => playeridx !== this.playerIdx);
         this.drawer = this.players[this.playerIdx];
+        console.log('player index and drawer', this.playerIdx, ' ', this.drawer);
         this.correctGuesses = new Array(this.guessers.length).fill(false);
 
         const threeWords = this.guessWords.sort(() => 0.5 - Math.random()).slice(0, 3);
@@ -126,7 +126,7 @@ export default class Game {
 
         this.timerStartedAt = Date.now();
 
-        this.timer = setTimeout(() => {
+        this.chooseTimer = setTimeout(() => {
             if(isDone) return;
             isDone = true;
 
@@ -143,7 +143,7 @@ export default class Game {
 
             this.gameState = GameState.PLAYER_GUESSING;
 
-            clearTimeout(this.timer);
+            if(this.chooseTimer) clearTimeout(this.chooseTimer);
             console.log('Action Manually Completed');
             onCompleteSelect()
         }
@@ -158,13 +158,11 @@ export default class Game {
 
     startGuessingPhase(onCompleteGuessed: (() => void)){
 
-        this.gameState = GameState.PLAYER_GUESSING;
-
         let isDone = false;
 
         this.timerStartedAt = Date.now();
 
-        this.timer = setTimeout(() => {
+        this.guessTimer  = setTimeout(() => {
             if(isDone) return;
             isDone = true;
 
@@ -179,7 +177,7 @@ export default class Game {
 
             this.gameState = GameState.PLAYER_CHOOSING;
 
-            clearTimeout(this.timer);
+            if(this.guessTimer) clearTimeout(this.guessTimer );
             onCompleteGuessed();
         }
 
@@ -214,7 +212,11 @@ export default class Game {
         this.drawer = '';
         this.currentWord = '';
         this.correctGuesses = new Array(this.guessers.length).fill(false);
-        this.gameState = GameState.PLAYER_CHOOSING;
+        // this.gameState = GameState.PLAYER_CHOOSING;
+        if(this.chooseTimer) { clearTimeout(this.chooseTimer); this.chooseTimer = undefined; }
+        if(this.guessTimer) { clearTimeout(this.guessTimer); this.guessTimer = undefined; }
+
+
 
         if(this.playerIdx >= this.players.length){
             this.playerIdx = 0;
@@ -224,11 +226,13 @@ export default class Game {
 
         this.playerSelectWord(() => {
             console.log('Next turn playerSelect log')
-            onBroadcast();
             this.startGuessingPhase(() => {
-                onBroadcast();
+
                 this.nextTurn(onBroadcast, onRoundComplete);
+                onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
+
             })
+            onBroadcast(); // fourth event player guessing after player choosing for 20 seconds
         })
 
     }
@@ -345,7 +349,6 @@ export default class Game {
                     round: this.round,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
-                    timer: this.timer,
                     winnerStack: this.winnerStack,
                     chooser: {
                         guessWords: this.guessWords,
