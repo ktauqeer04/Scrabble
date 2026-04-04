@@ -140,13 +140,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             game.startGuessingPhase(() => {
 
-                game.nextTurn(
-                () => {
-                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // function parameters 
-                },
-                () => {
-                    game.roundEnd();
-                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // function parameters
+                game.showHiddenWord(() => {
+
+                    game.nextTurn(
+                    () => {
+                        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // function parameters 
+                    },
+                    () => {
+                        game.roundEnd();
+                        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // function parameters
+                    })
+
+                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
                 })
 
                 this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // third emit player choosing after 25 seconds of guessing 

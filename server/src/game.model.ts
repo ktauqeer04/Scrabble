@@ -20,6 +20,7 @@ export default class Game {
     scoreBoard: {};
     chooseTimer: NodeJS.Timeout | undefined;
     guessTimer: NodeJS.Timeout | undefined;
+    revealWordTimer: NodeJS.Timeout | undefined;
     round: number;
     gameState: GameState;
     correctGuesses: boolean[];
@@ -30,7 +31,7 @@ export default class Game {
     timerDuration: number;
     choosingTime: number;
     guessingTime: number;
-
+    revealWordTime: number;
 
     constructor() {
         this.players = [];       
@@ -42,6 +43,7 @@ export default class Game {
         this.scoreBoard = new Map<string, number>();
         this.chooseTimer = undefined;
         this.guessTimer = undefined;
+        this.revealWordTimer = undefined;
         this.round = 1;
         this.gameState = GameState.WAITING;
         this.correctGuesses = [];
@@ -50,6 +52,9 @@ export default class Game {
         this.completeGuessAction = null
         this.choosingTime = 20000;
         this.guessingTime = 25000;
+        this.revealWordTime = 3000;
+        this.timerStartedAt = 0;
+        this.timerDuration = 0;
     }
 
 
@@ -166,7 +171,7 @@ export default class Game {
             if(isDone) return;
             isDone = true;
 
-            this.gameState = GameState.PLAYER_CHOOSING;
+            this.gameState = GameState.HIDDEN_WORD;
 
             onCompleteGuessed();
         }, 25000);
@@ -190,6 +195,18 @@ export default class Game {
             this.playerScored();
         }
 
+    }
+
+
+    showHiddenWord(onCompleteHiddenWord: () => void){
+
+        console.log('Hidden Word is', this.currentWord);
+
+        this.revealWordTimer = setTimeout(() => {
+            this.gameState = GameState.PLAYER_CHOOSING;
+            onCompleteHiddenWord();
+        }, 3000)
+        
     }
 
 
@@ -228,7 +245,13 @@ export default class Game {
             console.log('Next turn playerSelect log')
             this.startGuessingPhase(() => {
 
-                this.nextTurn(onBroadcast, onRoundComplete);
+                this.showHiddenWord(() => {
+
+                    this.nextTurn(onBroadcast, onRoundComplete);
+                    onBroadcast();
+                    
+                })
+
                 onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
 
             })
@@ -240,11 +263,13 @@ export default class Game {
     roundEnd() {
 
         console.log('Round has successfully ended');
+        this.endGame();
 
     }
 
     endGame() {
-
+        this.gameState = GameState.ENDED;
+        console.log('game has successfully ended');
     }
 
     getTime(timerDuration: number) {
@@ -326,12 +351,8 @@ export default class Game {
             case GameState.HIDDEN_WORD : 
                 return {
                     gamestate: this.gameState,
-                    players: this.players, 
-                    round: this.round,
                     currentWord: this.currentWord,
-                    scoreBoard: this.scoreBoard,
                     // timer: this.timer,
-                    winnerStack: this.winnerStack,
                     chooser: {
                         guessWords: this.guessWords,
                         drawer: this.drawer
