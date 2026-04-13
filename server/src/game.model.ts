@@ -125,7 +125,7 @@ export default class Game {
         console.log('player index and drawer', this.playerIdx, ' ', this.drawer);
         this.correctGuesses = new Array(this.guessers.length).fill(false);
 
-        const threeWords = this.guessWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+        const threeWords = words.sort(() => 0.5 - Math.random()).slice(0, 3);
         this.guessWords = threeWords
 
 
@@ -236,9 +236,12 @@ export default class Game {
 
 
         if(this.playerIdx >= this.players.length){
+            if(this.round == 3){
+                onRoundComplete();
+                return;
+            }
             this.playerIdx = 0;
-            onRoundComplete();
-            return;
+            this.round += 1;
         }
 
         this.playerSelectWord(() => {
@@ -263,6 +266,7 @@ export default class Game {
     roundEnd() {
 
         console.log('Round has successfully ended');
+
         this.endGame();
 
     }
