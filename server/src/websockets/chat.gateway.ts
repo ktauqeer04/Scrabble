@@ -1,6 +1,6 @@
 import { ConnectedSocket, MessageBody, SubscribeMessage,OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import Game from "src/game.model";
+import Game, { GameState } from "src/game.model";
 
 @WebSocketGateway({ cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -29,13 +29,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage('draw')
     handleEvent1(
 
-        @MessageBody() data: { room: string, payload: any},
+        @MessageBody() data: { room: string, payload: any, username: string},
         @ConnectedSocket() client: Socket,
 
     ): any {
 
         const game = this.rooms.get(data.room);
         console.log('Draw Event: game from room', typeof game);
+
+        if(game?.gameState != GameState.PLAYER_GUESSING) return;
+        console.log('data is ', data);
+
+        if(data.username != game.drawer) return;
+
         // console.log('draw Event: Received drawing data:', data);
         client.to(data.room).emit('updateDrawing', data.payload)
         console.log(data.room);
