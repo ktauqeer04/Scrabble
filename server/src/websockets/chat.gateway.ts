@@ -5,7 +5,7 @@ import Game, { GameState } from "src/game.model";
 @WebSocketGateway({ cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
-    server: Server;
+    server!: Server;
 
     private rooms: Map<string, Game> = new Map();
     private userSockets: Map<string, string> = new Map();
@@ -58,6 +58,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ){
         // console.log('chatMessage Event: Received chat message:', data);
         const game = this.rooms.get(data.room);
+
+        if(game?.gameState == GameState.PLAYER_GUESSING){
+            
+        }
+
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('receiveChatMessage', data.message)
         // console.log('chatMessage Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
@@ -65,10 +70,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     @SubscribeMessage('clearCanvas')
     handleEvent3(
-        @MessageBody() data: { room: string },
+        @MessageBody() data: { room: string, username: string },
         @ConnectedSocket() client: Socket,
     ){
-        const game = this.rooms.get(data.room)
+        const game = this.rooms.get(data.room);
+        if(game?.gameState != GameState.PLAYER_GUESSING) return;
+        console.log('data is ', data);
+
+        if(data.username != game.drawer) return;
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('updateCanvas')
     }
