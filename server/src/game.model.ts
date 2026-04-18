@@ -23,7 +23,7 @@ export default class Game {
     revealWordTimer: NodeJS.Timeout | undefined;
     round: number;
     gameState: GameState;
-    correctGuesses: boolean[];
+    correctGuesses: Map<string,boolean>;
     playerIdx: number
     completeChooseAction: (() => void) | null;
     completeGuessAction: (() => void) | null;
@@ -46,12 +46,12 @@ export default class Game {
         this.revealWordTimer = undefined;
         this.round = 1;
         this.gameState = GameState.WAITING;
-        this.correctGuesses = [];
+        this.correctGuesses = new Map();
         this.playerIdx = 0
         this.completeChooseAction = null
         this.completeGuessAction = null
         this.choosingTime = 20000;
-        this.guessingTime = 25000;
+        this.guessingTime = 30000;
         this.revealWordTime = 3000;
         this.timerStartedAt = 0;
         this.timerDuration = 0;
@@ -74,7 +74,7 @@ export default class Game {
             return { success: false, message: "Player already in game" }
         };
 
-        if(this.players.length == 3){
+        if(this.players.length == 4){
             return { success: false, message: "Room full" }
         }
 
@@ -122,8 +122,8 @@ export default class Game {
 
         this.guessers = this.players.filter((_, playeridx) => playeridx !== this.playerIdx);
         this.drawer = this.players[this.playerIdx];
-        console.log('player index and drawer', this.playerIdx, ' ', this.drawer);
-        this.correctGuesses = new Array(this.guessers.length).fill(false);
+        this.correctGuesses = new Map<string, boolean>(this.guessers.map(key => [key, false]));
+        console.log(this.correctGuesses);
 
         const threeWords = words.sort(() => 0.5 - Math.random()).slice(0, 3);
         this.guessWords = threeWords
@@ -174,7 +174,7 @@ export default class Game {
             this.gameState = GameState.HIDDEN_WORD;
 
             onCompleteGuessed();
-        }, 25000);
+        }, 30000);
 
         this.completeGuessAction = () => {
             if(isDone) return;
@@ -190,9 +190,12 @@ export default class Game {
 
     checkGuess(word: string, player: string){
 
+        console.log("----------------CHECK GUESS GETTING INVOKED----------------------");
+
         if(word === this.currentWord && this.guessers.includes(player)) {
-            // condition : all players have guessed the word except the last one
-            this.playerScored();
+            console.log("player has guessed the word");
+            this.correctGuesses.set(player, true);
+            // this.playerScored();
         }
 
     }
@@ -228,7 +231,7 @@ export default class Game {
         this.playerIdx += 1;
         this.drawer = '';
         this.currentWord = '';
-        this.correctGuesses = new Array(this.guessers.length).fill(false);
+        this.correctGuesses = new Map<string, boolean>(this.guessers.map(key => [key, false]));
         // this.gameState = GameState.PLAYER_CHOOSING;
         if(this.chooseTimer) { clearTimeout(this.chooseTimer); this.chooseTimer = undefined; }
         if(this.guessTimer) { clearTimeout(this.guessTimer); this.guessTimer = undefined; }

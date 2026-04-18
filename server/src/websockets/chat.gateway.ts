@@ -53,14 +53,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     @SubscribeMessage('chatMessage')
     handleEvent2(
-        @MessageBody() data: { room: string, message: string},
+        @MessageBody() data: { room: string, message: string, username: string},
         @ConnectedSocket() client: Socket,
     ){
         // console.log('chatMessage Event: Received chat message:', data);
         const game = this.rooms.get(data.room);
 
         if(game?.gameState == GameState.PLAYER_GUESSING){
-            
+
+            if(game.correctGuesses.get(data.username) == true){
+
+
+                const guessedUsersSocketIds = new Array();
+                for (const [name, guess] of game.correctGuesses){
+                    if(guess){
+                        guessedUsersSocketIds.push(this.userSockets.get(name));
+                    }
+                }
+
+                console.log(guessedUsersSocketIds);
+
+                this.server.to(guessedUsersSocketIds).emit('receiveChatMessage', data.message);
+                return;
+            }
+
+            game.checkGuess(data.message, data.username);
         }
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
