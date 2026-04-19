@@ -51,7 +51,7 @@ export default class Game {
         this.completeChooseAction = null
         this.completeGuessAction = null
         this.choosingTime = 20000;
-        this.guessingTime = 30000;
+        this.guessingTime = 50000;
         this.revealWordTime = 3000;
         this.timerStartedAt = 0;
         this.timerDuration = 0;
@@ -174,7 +174,7 @@ export default class Game {
             this.gameState = GameState.HIDDEN_WORD;
 
             onCompleteGuessed();
-        }, 30000);
+        }, 50000);
 
         this.completeGuessAction = () => {
             if(isDone) return;
@@ -188,13 +188,14 @@ export default class Game {
 
     }
 
-    checkGuess(word: string, player: string){
+    checkGuess(word: string, player: string, onFirstGuessed:() => void){
 
         console.log("----------------CHECK GUESS GETTING INVOKED----------------------");
 
-        if(word === this.currentWord && this.guessers.includes(player)) {
+        if(word === this.currentWord && this.guessers.includes(player) && !this.correctGuesses.get(player)) {
             console.log("player has guessed the word");
             this.correctGuesses.set(player, true);
+            onFirstGuessed();
             // this.playerScored();
         }
 

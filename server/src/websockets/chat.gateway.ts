@@ -62,9 +62,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if(game?.gameState == GameState.PLAYER_GUESSING){
 
             if(game.correctGuesses.get(data.username) == true){
-
-
+                
                 const guessedUsersSocketIds = new Array();
+
+                guessedUsersSocketIds.push(this.userSockets.get(game.drawer));
+
                 for (const [name, guess] of game.correctGuesses){
                     if(guess){
                         guessedUsersSocketIds.push(this.userSockets.get(name));
@@ -77,7 +79,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 return;
             }
 
-            game.checkGuess(data.message, data.username);
+            game.checkGuess(data.message, data.username, () => {
+                data.message = `${data.username} has guessed the word`;
+            });
         }
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
