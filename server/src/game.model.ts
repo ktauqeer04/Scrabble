@@ -180,24 +180,55 @@ export default class Game {
             if(isDone) return;
             isDone = true;
 
-            this.gameState = GameState.PLAYER_CHOOSING;
+            this.gameState = GameState.HIDDEN_WORD;
 
-            if(this.guessTimer) clearTimeout(this.guessTimer );
+            if(this.guessTimer) clearTimeout(this.guessTimer);
             onCompleteGuessed();
         }
 
     }
 
-    checkGuess(word: string, player: string, onFirstGuessed:() => void){
+    checkGuess(word: string, player: string, onFirstGuessed:() => void, onCloseGuess: () => void){
 
-        console.log("----------------CHECK GUESS GETTING INVOKED----------------------");
+        console.log("----------------CHECK GUESS INVOKED----------------------");
 
         if(word === this.currentWord && this.guessers.includes(player) && !this.correctGuesses.get(player)) {
             console.log("player has guessed the word");
             this.correctGuesses.set(player, true);
             onFirstGuessed();
+
+            let endState = true;
+
+            for (const [key, value] of this.correctGuesses){
+                endState = endState && value
+            }
+
+
+            if(endState){
+                this.completeGuessAction?.()
+            }
+
+            return;
             // this.playerScored();
+
         }
+
+        if(word.length == this.currentWord.length){
+            console.log("Close word invokedddddd")
+            let count = 0;
+            for(let i = 0; i < word.length; i++){
+                if(word[i] != this.currentWord[i]){
+                    count++;
+                }
+            }
+
+            if(count == 1) {
+                onCloseGuess();
+            }
+
+        }
+
+
 
     }
 

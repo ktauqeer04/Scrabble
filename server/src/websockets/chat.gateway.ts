@@ -61,6 +61,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         if(game?.gameState == GameState.PLAYER_GUESSING){
 
+            // what the fuck am I doing here?????
+            // okay I got it
+            // the guessors who have already guessed the word will now send chats to only those who have guessed
+            // and the drawer
+            // check condition to get the correct guessors
             if(game.correctGuesses.get(data.username) == true){
                 
                 const guessedUsersSocketIds = new Array();
@@ -79,14 +84,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 return;
             }
 
-            game.checkGuess(data.message, data.username, () => {
-                data.message = `${data.username} has guessed the word`;
-            });
+            game.checkGuess(data.message, data.username, 
+                () => {
+                    data.message = `${data.username} has guessed the word`;
+                    console.log("onfirstguessed getting invoked")
+                },
+                () => {
+                    const closeAnswer = data.message + " is almost close"
+                    this.server.to(client.id).emit("closeCorrectAnswer", closeAnswer);
+                }
+            );
+
         }
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('receiveChatMessage', data.message)
         // console.log('chatMessage Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
+        console.log("onfirstguessed getting invoked")
     }
 
     @SubscribeMessage('clearCanvas')
@@ -226,7 +240,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket
     ) {
         console.log('Chosen Word Event: chosen word is', data.chosenWord);
+
         const game = this.rooms.get(data.room);
+
+        if(game?.gameState != GameState.PLAYER_CHOOSING){
+            client.disconnect(true);
+            return;
+        }
+
+        if(!game?.guessWords.includes(data.chosenWord)){
+            client.disconnect(true);
+            return;
+        }
+
         game?.wordSelected(data.chosenWord);
         game?.completeChooseAction?.();
 
