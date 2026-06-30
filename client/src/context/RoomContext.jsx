@@ -15,32 +15,36 @@ export function RoomProvider({ children }) {
     return sessionStorage.getItem("roomCode") || "";
   });
 
+  const [username, setUsernameState ] = useState(() => {
+    return sessionStorage.getItem("username") || ""
+  })
+
   const setRoomCode = (code) => {
       sessionStorage.setItem("roomCode", code);
-
       setRoomCodeState(code);
   };
+
+  const setUsername = (name) => {
+    sessionStorage.setItem("username", name);
+    setUsernameState(name);
+  }
 
 
   console.log("Current room code in RoomProvider after refresh:", roomCode);
 
   useEffect(() => {
-    if(!roomCode) return;
+    if(!roomCode || !username) return;
 
     socket.on('connect', () => {
-      socket.emit("refreshPage", { room: roomCode });
+      socket.emit("refreshPage", { room: roomCode, username: username });
     })
-
-    if (socket.connected) {
-      socket.emit("refreshPage", { room: roomCode });
-    }
 
     return () => {return () => socket.off('connect', handleConnect)};
 
   }, [roomCode])
 
   return (
-    <RoomContext.Provider value={{ socket,roomCode, setRoomCode }}>
+    <RoomContext.Provider value={{ socket, roomCode, setRoomCode, username, setUsername }}>
       {children}
     </RoomContext.Provider>
   );

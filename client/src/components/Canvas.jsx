@@ -7,7 +7,7 @@ const BRUSH_SIZES = [2, 6, 12, 24];
 
 
 
-export default function Canvas({socket, roomCode}) {
+export default function Canvas({socket, roomCode, username}) {
 
 
   const canvasRef = useRef(null);
@@ -74,7 +74,8 @@ export default function Canvas({socket, roomCode}) {
           color: color,            // active color
           size: brushSize,         // brush size
           tool: tool               // "pen" or "eraser"
-          }
+          },
+        username: username
       })
 
     lastPos.current = pos;
@@ -90,7 +91,7 @@ export default function Canvas({socket, roomCode}) {
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    socket.emit("clearCanvas", { room: roomCode });
+    socket.emit("clearCanvas", { room: roomCode, username: username });
   };
 
   useEffect(() => {

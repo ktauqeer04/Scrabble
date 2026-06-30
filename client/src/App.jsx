@@ -10,15 +10,15 @@ import { useRoom } from './context/RoomContext';
 
 function App() {
 
-  const { socket, roomCode, setRoomCode } = useRoom();
+  const { socket, roomCode, setRoomCode, username, setUsername } = useRoom();
 
   console.log("Current room code in App.jsx:", roomCode);
 
   return (
       <Routes>
-        <Route path="/" element={<RoomLobby socket={socket} roomCode={roomCode} setRoomCode={setRoomCode} />} />
+        <Route path="/" element={<RoomLobby socket={socket} roomCode={roomCode} setRoomCode={setRoomCode} username={username} setUsername={setUsername} />} />
         <Route path={`/game`} element={
-          <Playground socket={socket} roomCode={roomCode} />
+          <Playground socket={socket} roomCode={roomCode} username={username}/>
         } />
       </Routes>
 

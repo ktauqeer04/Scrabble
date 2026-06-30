@@ -33,15 +33,15 @@ const characters = [
   { id: 8, name: "Dragon",  img: DEFAULT_FALLBACK },
 ];
 
-export default function RoomLobby({ socket, roomCode, setRoomCode }) {
-  const [username, setUsername]         = useState("");
+export default function RoomLobby({ socket, roomCode, setRoomCode, username, setUsername }) {
+  
   const [selectedChar, setSelectedChar] = useState(null);
   const [toast, setToast]               = useState("");
   const [roomFlag, setRoomFlag]         = useState(null);
 
   const navigate = useNavigate();
 
-  console.log(socket);
+  // console.log(socket);
 
 
   const canProceed = username.trim().length > 0 && selectedChar !== null;
