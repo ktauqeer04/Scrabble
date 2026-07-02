@@ -66,6 +66,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             // the guessors who have already guessed the word will now send chats to only those who have guessed
             // and the drawer
             // check condition to get the correct guessors
+
+            if(game.drawer == data.username){
+                return;
+            }
+
             if(game.correctGuesses.get(data.username) == true){
                 
                 const guessedUsersSocketIds = new Array();
@@ -80,7 +85,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 console.log(guessedUsersSocketIds);
 
-                this.server.to(guessedUsersSocketIds).emit('receiveChatMessage', data.message);
+                this.server.to(guessedUsersSocketIds).emit('receiveCorrectChatMessage', data.message);
                 return;
             }
 
@@ -91,6 +96,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 },
                 () => {
                     const closeAnswer = data.message + " is almost close"
+                    console.log(closeAnswer);
                     this.server.to(client.id).emit("closeCorrectAnswer", closeAnswer);
                 }
             );
@@ -99,6 +105,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('receiveChatMessage', data.message)
+
+        if(game?.gameState == GameState.HIDDEN_WORD){
+            this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
+        }
         // console.log('chatMessage Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
         console.log("onfirstguessed getting invoked")
     }
@@ -199,20 +209,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                     () => {
                         game.roundEnd();
                         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // function parameters
-                    })
+                    },
+                    () => {
+                        this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
+                    },
+                    () => {
+                        this.server.to(data.room).emit('receiveDrawingMessage', `${game?.drawer} is drawing`)
+                    }
+                )
 
                     this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
                 })
 
                 this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // third emit player choosing after 25 seconds of guessing 
-
-            })
-
+            },
+            () => {
+                this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
+            } 
+            )
+            
+            this.server.to(data.room).emit('receiveDrawingMessage', `${game?.drawer} is drawing`)
             this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // second emit player guessing after 20 seconds of choosing
 
         });
 
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // first emit player choosing immediately
+        console.log(" for example person is drawingggggggg")
 
     }
 

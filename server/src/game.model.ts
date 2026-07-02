@@ -32,6 +32,8 @@ export default class Game {
     choosingTime: number;
     guessingTime: number;
     revealWordTime: number;
+    userIsDrawing: (() => void) | null;
+    displayWord: (() => void) | null;
 
     constructor() {
         this.players = [];       
@@ -55,6 +57,8 @@ export default class Game {
         this.revealWordTime = 3000;
         this.timerStartedAt = 0;
         this.timerDuration = 0;
+        this.userIsDrawing = null
+        this.displayWord = null;
     }
 
 
@@ -161,7 +165,7 @@ export default class Game {
     // the guessers have to guess the word
     // this will work until the timer runs out or all players have guessed the word
 
-    startGuessingPhase(onCompleteGuessed: (() => void)){
+    startGuessingPhase(onCompleteGuessed: (() => void), displayWordAfterHiddenState: (() => void)){
 
         let isDone = false;
 
@@ -172,8 +176,9 @@ export default class Game {
             isDone = true;
 
             this.gameState = GameState.HIDDEN_WORD;
-
+            
             onCompleteGuessed();
+            displayWordAfterHiddenState()
         }, 50000);
 
         this.completeGuessAction = () => {
@@ -188,14 +193,14 @@ export default class Game {
 
     }
 
-    checkGuess(word: string, player: string, onFirstGuessed:() => void, onCloseGuess: () => void){
+    checkGuess(word: string, player: string, onCorrectGuess:() => void, onCloseGuess: () => void){
 
         console.log("----------------CHECK GUESS INVOKED----------------------");
 
         if(word === this.currentWord && this.guessers.includes(player) && !this.correctGuesses.get(player)) {
             console.log("player has guessed the word");
             this.correctGuesses.set(player, true);
-            onFirstGuessed();
+            onCorrectGuess();
 
             let endState = true;
 
@@ -226,6 +231,8 @@ export default class Game {
                 onCloseGuess();
             }
 
+            return;
+
         }
 
 
@@ -255,7 +262,7 @@ export default class Game {
 
 
     // recursion function that will on break once a single round has 
-    nextTurn(onBroadcast: () => void, onRoundComplete: () => void){
+    nextTurn(onBroadcast: () => void, onRoundComplete: () => void, displayWordAfterHiddenState: () => void, displayDrawerAfterChoosing: () => void){
 
         console.log("player index ", this.playerIdx);
         console.log("player length", this.players.length);
@@ -281,20 +288,27 @@ export default class Game {
 
         this.playerSelectWord(() => {
             console.log('Next turn playerSelect log')
-            this.startGuessingPhase(() => {
+            this.startGuessingPhase(
+                () => {
 
-                this.showHiddenWord(() => {
+                    this.showHiddenWord(() => {
 
-                    this.nextTurn(onBroadcast, onRoundComplete);
-                    onBroadcast();
-                    
-                })
+                        this.nextTurn(onBroadcast, onRoundComplete, displayWordAfterHiddenState, displayDrawerAfterChoosing);
+                        onBroadcast();
+                        
+                    })
 
-                onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
+                    onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
 
-            })
-            onBroadcast(); // fourth event player guessing after player choosing for 20 seconds
-        })
+                },
+                () => {
+                    displayWordAfterHiddenState()
+                }
+            )
+                displayDrawerAfterChoosing();
+                onBroadcast(); // fourth event player guessing after player choosing for 20 seconds
+            }
+        )
 
     }
 
