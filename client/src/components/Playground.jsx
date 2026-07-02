@@ -17,9 +17,9 @@ function Playground({ socket, roomCode, username }) {
             <div className="flex-1 min-w-0 border border-gray-300">
                 <Canvas socket={socket} roomCode={roomCode} username={username}/>
             </div>
-            <div className="flex-1 min-w-0 border border-gray-300 flex flex-col h-screen">
+            <div className="flex-1 min-w-0 border border-gray-500 flex flex-col h-screen">
                 <div className='h-16 flex items-center justify-center border border-gray-400 shrink-0'>
-                    Invite your friends using Room Code: RXJS12
+                    Invite your friends using Room Code: {roomCode}
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center min-h-0">
                     <ChatRoom socket={socket} roomCode={roomCode} username={username}/>

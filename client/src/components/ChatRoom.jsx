@@ -41,21 +41,55 @@ const ChatRoom = ({socket, roomCode, username}) => {
             try {
                 setChatMessages((prev) => [...prev, { text: message, type: 'close' }])                
             } catch (error) {
-                throw new Error("Error updating chat messages: " + error.message);
+                throw new Error("Error updating closeCorrectAnswer messages: " + error.message);
             }
             console.log("closeCorrectAnswer socket", message);
         })
         return () => socket.off("closeCorrectAnswer");
     }, [])
 
+    useEffect(() => {
+        socket.on("receiveCorrectChatMessage", (message) => {
+            try{
+                setChatMessages((prev) => [...prev, { text: message, type: 'correctGuessers' }]);
+            } catch (error) {
+                throw new Error("Error updating receiveCorrectChatMessage messages: " + error.message);
+            }
+            console.log("receiveCorrectChatMessage socket", message);
+        })
+        return () => socket.off("receiveCorrectChatMessage")
+    }, [])
+
+    useEffect(() => {
+        socket.on("receiveRoundOverMessage", (message) => {
+            try {
+                setChatMessages((prev) => [...prev, { text: message }]);
+            } catch (error) {
+                throw new Error("Error updating receiveRoundOverMessage messages: " + error.message);
+            }
+        })
+        return () => socket.off("receiveRoundOverMessage")
+    }, []) 
+
+     useEffect(() => {
+        socket.on("receiveDrawingMessage", (message) => {
+            try {
+                setChatMessages((prev) => [...prev, { text: message }]);
+            } catch (error) {
+                throw new Error("Error updating receiveDrawingMessage messages: " + error.message);
+            }
+        })
+        return () => socket.off("receiveDrawingMessage")
+    }, []) 
+
     return (
-        <div className="flex flex-col w-full max-w-md h-96 border rounded-lg shadow-sm overflow-hidden bg-white">
+        <div className="flex flex-col w-full max-w-md h-96 border border-gray-500 rounded-lg shadow-sm overflow-hidden bg-white">
             {/* Messages area - grows and scrolls */}
             <ul className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
                 {chatMessages.map((msg, key) => (
                     <li
                         key={key}
-                        className="px-2 py-1 rounded break-words"
+                        className="px-2 py-1 rounded break-words border border-gray-300"
                         style={{ backgroundColor: msg.type === 'close' ? 'yellow' : 'transparent' }}
                     >
                         {msg.text}
@@ -71,6 +105,7 @@ const ChatRoom = ({socket, roomCode, username}) => {
             >
                 <input
                     type="text"
+                    placeholder='type your answer'
                     className="flex-1 border px-2 py-1 rounded"
                     onChange={(e) => setMessage(e.target.value)}
                 />
