@@ -34,6 +34,8 @@ export default class Game {
     revealWordTime: number;
     userIsDrawing: (() => void) | null;
     displayWord: (() => void) | null;
+    timerScoreCard: Map<string,number>;
+
 
     constructor() {
         this.players = [];       
@@ -59,6 +61,7 @@ export default class Game {
         this.timerDuration = 0;
         this.userIsDrawing = null
         this.displayWord = null;
+        this.timerScoreCard = new Map<string,number>()
     }
 
 
@@ -199,6 +202,13 @@ export default class Game {
 
         if(word === this.currentWord && this.guessers.includes(player) && !this.correctGuesses.get(player)) {
             console.log("player has guessed the word");
+
+            const timeOfGuess: number = this.getTime(this.guessingTime);
+
+            this.timerScoreCard.set(player, timeOfGuess);
+
+            console.log(this.timerScoreCard);
+            
             this.correctGuesses.set(player, true);
             onCorrectGuess();
 
