@@ -59,6 +59,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // console.log('chatMessage Event: Received chat message:', data);
         const game = this.rooms.get(data.room);
 
+        if(game?.gameState == GameState.WAITING) return;
+
         if(game?.gameState == GameState.PLAYER_GUESSING){
 
             // what the fuck am I doing here?????
@@ -92,6 +94,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             game.checkGuess(data.message, data.username, 
                 () => {
                     data.message = `${data.username} has guessed the word`;
+                    this.server.to(data.room).emit('correctAnswer', `${data.username} has guessed the word`)
+                    
                     console.log("onfirstguessed getting invoked")
                 },
                 () => {
@@ -101,14 +105,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 }
             );
 
+            if(game?.checkIfAllHasGuessed()){
+                this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
+            }
+
+            return;
+
         }
+
+        console.log("___________________________________HERE__________________________________________")
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
-        this.server.to(data.room).emit('receiveChatMessage', data.message)
-
-        if(game?.gameState == GameState.HIDDEN_WORD){
-            this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
-        }
+        this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
         // console.log('chatMessage Event: total number of client in rooms', this.server.sockets.adapter.rooms.get(data.room))
         console.log("onfirstguessed getting invoked")
     }

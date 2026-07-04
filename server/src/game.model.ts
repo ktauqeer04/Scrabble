@@ -212,16 +212,6 @@ export default class Game {
             this.correctGuesses.set(player, true);
             onCorrectGuess();
 
-            let endState = true;
-
-            for (const [key, value] of this.correctGuesses){
-                endState = endState && value
-            }
-
-
-            if(endState){
-                this.completeGuessAction?.()
-            }
 
             return;
             // this.playerScored();
@@ -270,6 +260,22 @@ export default class Game {
 
     }
 
+    checkIfAllHasGuessed(): boolean{
+        let endState = true;
+
+        for (const [key, value] of this.correctGuesses){
+            endState = endState && value
+        }
+
+
+        if(endState){
+            this.completeGuessAction?.()
+            return true;
+        }
+
+        return false
+
+    }
 
     // recursion function that will on break once a single round has 
     nextTurn(onBroadcast: () => void, onRoundComplete: () => void, displayWordAfterHiddenState: () => void, displayDrawerAfterChoosing: () => void){
