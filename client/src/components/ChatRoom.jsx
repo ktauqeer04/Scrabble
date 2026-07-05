@@ -23,11 +23,11 @@ const ChatRoom = ({socket, roomCode, username}) => {
 
 
     useEffect(() => {
-        socket.on("receiveChatMessage", (message) => {
+        socket.on("receiveChatMessage", (data) => {
 
-            console.log("receiveChatMessage on the first is", message);
+            console.log("receiveChatMessage on the first is", data);
             try {
-                setChatMessages((prev) => [...prev, {text: message, type: 'normal'}])                
+                setChatMessages((prev) => [...prev, {text: data.username + " : " + data.message, type: 'normal'}])                
             } catch (error) {
                 throw new Error("Error updating chat messages: " + error.message);
             }
@@ -80,6 +80,17 @@ const ChatRoom = ({socket, roomCode, username}) => {
             }
         })
         return () => socket.off("receiveDrawingMessage")
+    }, []) 
+
+    useEffect(() => {
+        socket.on("correctAnswer", (message) => {
+            try {
+                setChatMessages((prev) => [...prev, { text: message }]);
+            } catch (error) {
+                throw new Error("Error updating correctAnswer messages: " + error.message);
+            }
+        })
+        return () => socket.off("correctAnswer")
     }, []) 
 
     return (
