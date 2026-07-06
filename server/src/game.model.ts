@@ -8,16 +8,21 @@ export enum GameState {
     ENDED = 'ended'
 }
 
+interface ScoreEntry {
+  player: string;
+  time: number;
+}
+
 
 export default class Game {
 
+    private scoreBoard: Map<string, number> = new Map<string, number>();
     players: string[];
     guessWords: string[];
     winnerStack: [];
     currentWord: string;
     guessers: string[];
     drawer: string;
-    scoreBoard: {};
     chooseTimer: NodeJS.Timeout | undefined;
     guessTimer: NodeJS.Timeout | undefined;
     revealWordTimer: NodeJS.Timeout | undefined;
@@ -34,7 +39,8 @@ export default class Game {
     revealWordTime: number;
     userIsDrawing: (() => void) | null;
     displayWord: (() => void) | null;
-    timerScoreCard: Map<string,number>;
+    timerScoreCard: ScoreEntry[] = [];
+
 
 
     constructor() {
@@ -61,7 +67,8 @@ export default class Game {
         this.timerDuration = 0;
         this.userIsDrawing = null
         this.displayWord = null;
-        this.timerScoreCard = new Map<string,number>()
+        this.timerScoreCard = []
+        
     }
 
 
@@ -203,9 +210,9 @@ export default class Game {
         if(word === this.currentWord && this.guessers.includes(player) && !this.correctGuesses.get(player)) {
             console.log("player has guessed the word");
 
-            const timeOfGuess: number = this.getTime(this.guessingTime);
+            const timeOfGuess: number = this.getTimeinMS(this.guessingTime);
 
-            this.timerScoreCard.set(player, timeOfGuess);
+            this.timerScoreCard.push({ player: player, time: timeOfGuess });
 
             console.log(this.timerScoreCard);
             
@@ -314,6 +321,7 @@ export default class Game {
                         
                     })
 
+                    this.markPlayerScores();
                     onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
 
                 },
@@ -336,12 +344,18 @@ export default class Game {
 
     }
 
-    endGame() {
+    endGame() {        
+
         this.gameState = GameState.ENDED;
+
+        const topThree = this.getTop3Players();
+        console.log("Top 3 players:", topThree);
+
+
         console.log('game has successfully ended');
     }
 
-    getTime(timerDuration: number) {
+    getTimeinSeconds(timerDuration: number) {
 
         if(!this.timerStartedAt) return 0;
 
@@ -352,9 +366,39 @@ export default class Game {
 
     }
 
+    getTimeinMS(timerDuration: number){
 
-    playerScored(){
+        if(!this.timerStartedAt) return 0;
+        
+        const elapsed = Date.now() - this.timerStartedAt;
+        const remainingTime = timerDuration - elapsed;
 
+        return remainingTime;
+    }
+
+
+    markPlayerScores() {
+        const basePoints = 100;
+        const rankDecrement = 10; // 1st: 100, 2nd: 90, 3rd: 80...
+        const timeBonusWeight = 20; // max bonus points available for speed
+
+        this.timerScoreCard.forEach(({player, time}, index) => {
+            const rankScore = Math.max(basePoints - index * rankDecrement, 0);
+            const timeBonus = Math.round((time / this.guessingTime) * timeBonusWeight);
+            const totalScore = rankScore + timeBonus;
+
+            const prevScore = this.scoreBoard.get(player) ?? 0;
+            this.scoreBoard.set(player, prevScore + totalScore);
+        });
+
+        this.timerScoreCard = [];
+        console.log("scores after guessing", this.scoreBoard);
+    }
+
+    getTop3Players(): [string, number][] {
+        return Array.from(this.scoreBoard.entries())
+        .sort((a, b) => b[1] - a[1]) 
+        .slice(0, 3);
     }
 
     getSnapshot() {
@@ -395,7 +439,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime(this.choosingTime)
+                    timeLeft: this.getTimeinSeconds(this.choosingTime)
                 }
 
             case GameState.PLAYER_GUESSING:
@@ -414,7 +458,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime(this.guessingTime)
+                    timeLeft: this.getTimeinSeconds(this.guessingTime)
                 }
             
             case GameState.HIDDEN_WORD : 
@@ -429,7 +473,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    timeLeft: this.getTime(3000)
+                    timeLeft: this.getTimeinSeconds(3000)
                 }
             
             case GameState.ENDED:

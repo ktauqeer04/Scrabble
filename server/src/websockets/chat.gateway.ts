@@ -229,6 +229,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                     this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
                 })
 
+                game.markPlayerScores();
+
                 this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // third emit player choosing after 25 seconds of guessing 
             },
             () => {
