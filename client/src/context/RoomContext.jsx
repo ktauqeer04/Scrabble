@@ -33,16 +33,47 @@ export function RoomProvider({ children }) {
   console.log("Current room code in RoomProvider after refresh:", roomCode);
 
   useEffect(() => {
-    if(!roomCode || !username) return;
+    if (!roomCode || !username) return;
 
-    socket.on('connect', () => {
-      socket.emit("refreshPage", { room: roomCode, username: username });
-    })
+    const handleConnect = () => {
+      socket.emit("refreshPage", { room: roomCode, username });
+    };
 
-    return () => {return () => socket.off('connect', handleConnect)};
+    socket.on('connect', handleConnect);
 
-  }, [roomCode])
+    // socket might already be connected when this effect runs,
+    // in which case 'connect' won't fire again
+    if (socket.connected) handleConnect();
 
+    return () => {
+      socket.off('connect', handleConnect);
+    };
+  }, [roomCode, username]);
+
+
+
+  useEffect(() => {
+    if (username) return;
+
+    const timer = setTimeout(() => {
+      const handleConnect = () => {
+        socket.emit("playerLeft", { room: roomCode, socketId: socket.id });
+      };
+
+      if (socket.connected) {
+        handleConnect();
+      } else {
+        socket.on('connect', handleConnect);
+      }
+    }, 2200); // 2 - 2.5s window
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [username, roomCode]);
+
+
+  
   return (
     <RoomContext.Provider value={{ socket, roomCode, setRoomCode, username, setUsername }}>
       {children}

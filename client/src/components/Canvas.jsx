@@ -69,8 +69,8 @@ export default function Canvas({socket, roomCode, username}) {
         payload:{
           x0: lastPos.current.x / canvas.width,
           y0: lastPos.current.y / canvas.height,
-          x1: pos.x,               // where it ended (current mouse position)
-          y1: pos.y,
+          x1: pos.x / canvas.width,
+          y1: pos.y / canvas.height,
           color: color,            // active color
           size: brushSize,         // brush size
           tool: tool               // "pen" or "eraser"
@@ -103,7 +103,7 @@ export default function Canvas({socket, roomCode, username}) {
 
         ctx.beginPath();
         ctx.moveTo(x0 * canvas.width, y0 * canvas.height);
-        ctx.lineTo(x1, y1);
+        ctx.lineTo(x1 * canvas.width, y1 * canvas.height);
         ctx.strokeStyle = tool === "eraser" ? "#ffffffff" : color;
         ctx.lineWidth = tool === "eraser" ? size * 3 : size;
         ctx.lineCap = "round";
@@ -125,6 +125,30 @@ export default function Canvas({socket, roomCode, username}) {
     })
     return () => socket.off('updateCanvas')
   }, [])
+
+  // listen for replay
+  // Canvas.jsx
+  useEffect(() => {
+    socket.emit("requestReplay", { room: roomCode });
+
+    socket.on('replayDrawing', (strokes) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      strokes.forEach(stroke => {
+        ctx.beginPath();
+        ctx.moveTo(stroke.x0 * canvas.width, stroke.y0 * canvas.height);
+        ctx.lineTo(stroke.x1 * canvas.width, stroke.y1 * canvas.height);
+        ctx.strokeStyle = stroke.tool === 'eraser' ? '#ffffff' : stroke.color;
+        ctx.lineWidth = stroke.tool === 'eraser' ? stroke.size * 3 : stroke.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      });
+    });
+
+    return () => socket.off('replayDrawing');
+  }, []);
 
   return (
     <>
