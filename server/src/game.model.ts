@@ -17,6 +17,7 @@ interface ScoreEntry {
 export default class Game {
 
     private scoreBoard: Map<string, number> = new Map<string, number>();
+    canvasSnapshot: any[] = [];
     players: string[];
     guessWords: string[];
     winnerStack: [];
@@ -68,6 +69,7 @@ export default class Game {
         this.userIsDrawing = null
         this.displayWord = null;
         this.timerScoreCard = []
+        this.canvasSnapshot = [];
         
     }
 
@@ -113,7 +115,6 @@ export default class Game {
     // round starts  
     roundStart(onComplete: () => void){
 
-        console.log(this.players);
         this.gameState = GameState.PLAYER_CHOOSING;
 
         this.playerSelectWord(() => {
@@ -137,7 +138,6 @@ export default class Game {
         this.guessers = this.players.filter((_, playeridx) => playeridx !== this.playerIdx);
         this.drawer = this.players[this.playerIdx];
         this.correctGuesses = new Map<string, boolean>(this.guessers.map(key => [key, false]));
-        console.log(this.correctGuesses);
 
         const threeWords = words.sort(() => 0.5 - Math.random()).slice(0, 3);
         this.guessWords = threeWords
@@ -163,7 +163,6 @@ export default class Game {
             this.gameState = GameState.PLAYER_GUESSING;
 
             if(this.chooseTimer) clearTimeout(this.chooseTimer);
-            console.log('Action Manually Completed');
             onCompleteSelect()
         }
 
@@ -205,16 +204,13 @@ export default class Game {
 
     checkGuess(word: string, player: string, onCorrectGuess:() => void, onCloseGuess: () => void){
 
-        console.log("----------------CHECK GUESS INVOKED----------------------");
 
         if(word === this.currentWord && this.guessers.includes(player) && !this.correctGuesses.get(player)) {
-            console.log("player has guessed the word");
 
             const timeOfGuess: number = this.getTimeinMS(this.guessingTime);
 
             this.timerScoreCard.push({ player: player, time: timeOfGuess });
 
-            console.log(this.timerScoreCard);
             
             this.correctGuesses.set(player, true);
             onCorrectGuess();
@@ -226,7 +222,6 @@ export default class Game {
         }
 
         if(word.length == this.currentWord.length){
-            console.log("Close word invokedddddd")
             let count = 0;
             for(let i = 0; i < word.length; i++){
                 if(word[i] != this.currentWord[i]){
@@ -249,7 +244,6 @@ export default class Game {
 
     showHiddenWord(onCompleteHiddenWord: () => void){
 
-        console.log('Hidden Word is', this.currentWord);
 
         this.revealWordTimer = setTimeout(() => {
             this.gameState = GameState.PLAYER_CHOOSING;
@@ -262,7 +256,6 @@ export default class Game {
     wordSelected(word: any) {
 
         this.currentWord = word;
-        console.log('word selected getting invoked');
         this.gameState = GameState.PLAYER_GUESSING;
 
     }
@@ -287,13 +280,12 @@ export default class Game {
     // recursion function that will on break once a single round has 
     nextTurn(onBroadcast: () => void, onRoundComplete: () => void, displayWordAfterHiddenState: () => void, displayDrawerAfterChoosing: () => void){
 
-        console.log("player index ", this.playerIdx);
-        console.log("player length", this.players.length);
 
         this.playerIdx += 1;
         this.drawer = '';
         this.currentWord = '';
         this.correctGuesses = new Map<string, boolean>(this.guessers.map(key => [key, false]));
+        this.canvasSnapshot = [];
         // this.gameState = GameState.PLAYER_CHOOSING;
         if(this.chooseTimer) { clearTimeout(this.chooseTimer); this.chooseTimer = undefined; }
         if(this.guessTimer) { clearTimeout(this.guessTimer); this.guessTimer = undefined; }
@@ -310,7 +302,6 @@ export default class Game {
         }
 
         this.playerSelectWord(() => {
-            console.log('Next turn playerSelect log')
             this.startGuessingPhase(
                 () => {
 
@@ -338,7 +329,6 @@ export default class Game {
 
     roundEnd() {
 
-        console.log('Round has successfully ended');
 
         this.endGame();
 
@@ -349,10 +339,8 @@ export default class Game {
         this.gameState = GameState.ENDED;
 
         const topThree = this.getTop3Players();
-        console.log("Top 3 players:", topThree);
 
 
-        console.log('game has successfully ended');
     }
 
     getTimeinSeconds(timerDuration: number) {
@@ -392,7 +380,6 @@ export default class Game {
         });
 
         this.timerScoreCard = [];
-        console.log("scores after guessing", this.scoreBoard);
     }
 
     getTop3Players(): [string, number][] {
