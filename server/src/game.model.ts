@@ -117,6 +117,8 @@ export default class Game {
 
         this.gameState = GameState.PLAYER_CHOOSING;
 
+        this.playerIdx = this.players.length - 1;
+
         this.playerSelectWord(() => {
             onComplete();
         })
@@ -221,6 +223,8 @@ export default class Game {
 
         }
 
+        console.log("return works and everything after this gets called")
+
         if(word.length == this.currentWord.length){
             let count = 0;
             for(let i = 0; i < word.length; i++){
@@ -281,7 +285,7 @@ export default class Game {
     nextTurn(onBroadcast: () => void, onRoundComplete: () => void, displayWordAfterHiddenState: () => void, displayDrawerAfterChoosing: () => void){
 
 
-        this.playerIdx += 1;
+        this.playerIdx -= 1;
         this.drawer = '';
         this.currentWord = '';
         this.correctGuesses = new Map<string, boolean>(this.guessers.map(key => [key, false]));
@@ -292,12 +296,12 @@ export default class Game {
 
 
 
-        if(this.playerIdx >= this.players.length){
+        if(this.playerIdx < 0){
             if(this.round == 3){
                 onRoundComplete();
                 return;
             }
-            this.playerIdx = 0;
+            this.playerIdx = this.players.length - 1;
             this.round += 1;
         }
 
