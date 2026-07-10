@@ -93,6 +93,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 () => {
                     const closeAnswer = data.message + " is almost close"
                     this.server.to(client.id).emit("closeCorrectAnswer", closeAnswer);
+                    this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
+                }, 
+                () => {
+                    this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
                 }
             );
 
@@ -104,7 +108,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         }
 
-        console.log("last event emitting")
+        console.log("last event ")
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })

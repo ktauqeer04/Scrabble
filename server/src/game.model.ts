@@ -204,7 +204,7 @@ export default class Game {
 
     }
 
-    checkGuess(word: string, player: string, onCorrectGuess:() => void, onCloseGuess: () => void){
+    checkGuess(word: string, player: string, onCorrectGuess:() => void, onCloseGuess: () => void, sendChat: () => void){
 
 
         if(word === this.currentWord && this.guessers.includes(player) && !this.correctGuesses.get(player)) {
@@ -223,7 +223,7 @@ export default class Game {
 
         }
 
-        console.log("return works and everything after this gets called")
+        // console.log("return works and everything after this gets called")
 
         if(word.length == this.currentWord.length){
             let count = 0;
@@ -241,7 +241,9 @@ export default class Game {
 
         }
 
+        console.log("return works and everything after this gets called")
 
+        sendChat()
 
     }
 
