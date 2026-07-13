@@ -173,7 +173,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
 
         if(game?.gameState == GameState.PLAYER_GUESSING){
-            console.log(game.canvasSnapshot);
+            // console.log(game.canvasSnapshot);
             client.emit("replayDrawing", game.canvasSnapshot);
         }
 
@@ -245,8 +245,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const game = this.rooms.get(data.room);
         this.userSockets.set(data.username, client.id);
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
-        console.log(game?.players);
-        console.log(client.id);
+        // console.log(game?.players);
+        // console.log(client.id);
 
     }
 
@@ -282,7 +282,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
 
         const game = this.rooms.get(data.room);
-        console.log(client.id)
+        // console.log(client.id)
         // const playerName = 
         // const index = game?.players.indexOf(data.)
        
