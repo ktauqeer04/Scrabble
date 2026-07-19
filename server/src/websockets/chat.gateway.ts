@@ -12,11 +12,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //let rooms: 
 
     handleDisconnect(client: Socket) {
+
         this.userSockets.forEach((socketId, username) => {
             if(socketId === client.id){
                 this.userSockets.delete(username);
             }
         })
+
+
+
     }
 
     handleConnection(client: Socket, ...args: any[]) {
