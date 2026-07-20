@@ -306,4 +306,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
     }
 
+
+    @SubscribeMessage('requestSnapshot')
+    handleRequestSnapshot(
+        @MessageBody() data: any, 
+        @ConnectedSocket() client: Socket
+    ) {
+        const game = this.rooms.get(data.room);
+        if (game) {
+            client.emit('game-snapshot', game.getSnapshot());
+        }
+    }
+
 }
