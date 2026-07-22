@@ -25,6 +25,14 @@ function Playground({ socket, roomCode, username }) {
         console.log('snapshot updated', snapshot);
     }, [snapshot]);
 
+
+    const handleStartGame = () => {
+        socket.emit('Start-Game', { room: roomCode });
+
+        return () => socket.off('Start-Game');
+    }
+
+
     return (
         <div className="flex h-screen relative"> {/* ← add relative */}
             <div className="flex-1 min-w-0 border border-gray-300">
@@ -99,7 +107,7 @@ function Playground({ socket, roomCode, username }) {
                                 </div> */}
 
                                 <button
-                                    // onClick={handleStartGame}
+                                    onClick={handleStartGame}
                                     className="bg-green-500 text-white py-3 rounded-lg font-bold text-lg hover:bg-green-600"
                                 >
                                     Start Game!
