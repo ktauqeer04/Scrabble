@@ -188,7 +188,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     @SubscribeMessage('Start-Game')
     handleEventStartGame(
-        @MessageBody() data: any,
+        @MessageBody() data: {
+            room: string,
+            maxPlayers: number, 
+            drawTime: number, 
+            noOfRounds: number
+        },
         @ConnectedSocket() client: Socket,
     ){
 
@@ -318,4 +323,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
     }
 
+
+
+    @SubscribeMessage('Game-Settings')
+    handleGameSettings(
+        @MessageBody() data: {
+            room: string,
+            maxNoOfPlayers: number,
+            drawTimer: number,
+            maxRounds: number
+        },
+        @ConnectedSocket() client: Socket
+    ){
+
+        const game = this.rooms.get(data.room);
+
+        if(game?.gameState != GameState.WAITING){
+            return;
+        }
+
+        game?.setGameSettings(data.maxNoOfPlayers, data.drawTimer, data.maxRounds);
+
+    }
 }

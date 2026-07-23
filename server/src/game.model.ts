@@ -16,7 +16,7 @@ interface ScoreEntry {
 
 export default class Game {
 
-    private scoreBoard: Map<string, number> = new Map<string, number>();
+    scoreBoard: Map<string, number> = new Map<string, number>();
     canvasSnapshot: any[] = [];
     players: string[];
     guessWords: string[];
@@ -41,8 +41,8 @@ export default class Game {
     userIsDrawing: (() => void) | null;
     displayWord: (() => void) | null;
     timerScoreCard: ScoreEntry[] = [];
-
-
+    maxPlayers: number;
+    maxRounds: number;
 
     constructor() {
         this.players = [];       
@@ -70,12 +70,20 @@ export default class Game {
         this.displayWord = null;
         this.timerScoreCard = []
         this.canvasSnapshot = [];
-        
+        this.maxPlayers = 5;
+        this.maxRounds = 3;
     }
 
 
     startGame() {
         this.gameState = GameState.WAITING;
+    }
+
+
+    setGameSettings(maxNoOfPlayers: number, drawTimer: number, maxRounds: number) {
+        this.maxPlayers = maxNoOfPlayers;
+        this.maxRounds = maxRounds;
+        this.guessingTime = drawTimer;
     }
 
     // start of the game, 
@@ -90,7 +98,7 @@ export default class Game {
             return { success: false, message: "Player already in game" }
         };
 
-        if(this.players.length == 4){
+        if(this.players.length == this.maxPlayers){
             return { success: false, message: "Room full" }
         }
 
@@ -102,7 +110,6 @@ export default class Game {
 
         this.players.push(player);
         this.guessers.push(player);
-
 
         return { success: true };
 
@@ -121,7 +128,7 @@ export default class Game {
 
         this.playerSelectWord(() => {
             onComplete();
-        })
+        });
 
     }
 
@@ -156,7 +163,7 @@ export default class Game {
             this.gameState = GameState.PLAYER_GUESSING;
 
             onCompleteSelect();
-        }, 20000)
+        }, this.choosingTime)
 
         this.completeChooseAction = () => {
             if(isDone) return;
@@ -190,7 +197,7 @@ export default class Game {
             
             onCompleteGuessed();
             displayWordAfterHiddenState()
-        }, 50000);
+        }, this.guessingTime);
 
         this.completeGuessAction = () => {
             if(isDone) return;
@@ -299,7 +306,7 @@ export default class Game {
 
 
         if(this.playerIdx < 0){
-            if(this.round == 3){
+            if(this.round == this.maxRounds){
                 onRoundComplete();
                 return;
             }
