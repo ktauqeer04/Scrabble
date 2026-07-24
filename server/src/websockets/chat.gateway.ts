@@ -1,6 +1,7 @@
 import { ConnectedSocket, MessageBody, SubscribeMessage,OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import Game, { GameState } from "src/game.model";
+import { GameMode, GameState } from "src/enums";
+import Game from "src/game.model";
 
 @WebSocketGateway({ cors: true })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -212,6 +213,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                     () => {
                         game.roundEnd();
                         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // function parameters
+                        this.server.to(data.room).emit('receiveRoundOverMessage', 'Game has Ended');
                     },
                     () => {
                         this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
@@ -331,7 +333,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             room: string,
             maxNoOfPlayers: number,
             drawTimer: number,
-            maxRounds: number
+            maxRounds: number,
+            gameMode: GameMode
         },
         @ConnectedSocket() client: Socket
     ){
@@ -342,7 +345,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        game?.setGameSettings(data.maxNoOfPlayers, data.drawTimer, data.maxRounds);
+        game?.setGameSettings(data.maxNoOfPlayers, data.drawTimer, data.maxRounds, data.gameMode);
 
     }
 }

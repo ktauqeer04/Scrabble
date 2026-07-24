@@ -1,12 +1,6 @@
 import words from "./words";
+import { GameState, GameMode } from "./enums";
 
-export enum GameState {
-    WAITING = 'waiting',
-    PLAYER_CHOOSING = 'player_choosing',
-    PLAYER_GUESSING = 'player_guessing',
-    HIDDEN_WORD='hidden_word',
-    ENDED = 'ended'
-}
 
 interface ScoreEntry {
   player: string;
@@ -43,10 +37,11 @@ export default class Game {
     timerScoreCard: ScoreEntry[] = [];
     maxPlayers: number;
     maxRounds: number;
+    gameMode: GameMode;
 
     constructor() {
         this.players = [];       
-        this.guessWords = words;
+        this.guessWords = words.medium;
         this.winnerStack = [];
         this.currentWord = '';
         this.guessers = [];
@@ -72,6 +67,7 @@ export default class Game {
         this.canvasSnapshot = [];
         this.maxPlayers = 5;
         this.maxRounds = 3;
+        this.gameMode = GameMode.MEDIUM;
     }
 
 
@@ -80,10 +76,11 @@ export default class Game {
     }
 
 
-    setGameSettings(maxNoOfPlayers: number, drawTimer: number, maxRounds: number) {
+    setGameSettings(maxNoOfPlayers: number, drawTimer: number, maxRounds: number, gameMode: GameMode) {
         this.maxPlayers = maxNoOfPlayers;
         this.maxRounds = maxRounds;
         this.guessingTime = drawTimer;
+        this.gameMode = gameMode;
     }
 
     // start of the game, 
@@ -148,7 +145,25 @@ export default class Game {
         this.drawer = this.players[this.playerIdx];
         this.correctGuesses = new Map<string, boolean>(this.guessers.map(key => [key, false]));
 
-        const threeWords = words.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+        let threeWords: string[] = [];
+
+        switch (this.gameMode){
+
+            case GameMode.EASY:
+                threeWords = [...words.easy].sort(() => 0.5 - Math.random()).slice(0,3)
+                break;
+            
+            case GameMode.MEDIUM:
+                threeWords = [...words.medium].sort(() => 0.5 - Math.random()).slice(0,3)
+                break;
+
+            case GameMode.HARD: 
+                threeWords = [...words.hard].sort(() => 0.5 - Math.random()).slice(0,3)
+                break;
+        }
+
+
         this.guessWords = threeWords
 
 
@@ -411,6 +426,7 @@ export default class Game {
                     round: this.round,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
+                    gameMode: this.gameMode,
                     // timer: this.timer,
                     winnerStack: this.winnerStack,
                     chooser: {
@@ -430,6 +446,7 @@ export default class Game {
                     round: this.round,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
+                    gameMode: this.gameMode,
                     // timer: this.timer,
                     winnerStack: this.winnerStack,
                     chooser: {
@@ -449,6 +466,7 @@ export default class Game {
                     round: this.round,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
+                    gameMode: this.gameMode,
                     // timer: this.timer,
                     winnerStack: this.winnerStack,
                     chooser: {
