@@ -28,7 +28,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     @SubscribeMessage('draw')
-    handleEvent1(
+    handleEventDraw(
 
         @MessageBody() data: { room: string, payload: any, username: string},
         @ConnectedSocket() client: Socket,
@@ -52,7 +52,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     @SubscribeMessage('chatMessage')
-    handleEvent2(
+    handleEventChatMessage(
         @MessageBody() data: { room: string, message: string, username: string},
         @ConnectedSocket() client: Socket,
     ){
@@ -120,7 +120,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     @SubscribeMessage('clearCanvas')
-    handleEvent3(
+    handleEventClearCanvas(
         @MessageBody() data: { room: string, username: string },
         @ConnectedSocket() client: Socket,
     ){
@@ -135,7 +135,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // user that creates this room is the first person to join the room 
     @SubscribeMessage('createRoom')
-    handleEvent4(
+    handleEventCreateRoom(
         @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ){
@@ -153,7 +153,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // user joining the room are second onwards
     @SubscribeMessage('joinRoom')
-    handleEvent5(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+    handleEventJoinRoom(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
 
         if (!this.rooms.has(data.room)) {
             client.emit('roomNotExists', { message: 'Room does not exist', flag: false });
@@ -246,7 +246,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 
     @SubscribeMessage('refreshPage')
-    handleEvent6(
+    handleEventRefreshPage(
         @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ){
@@ -263,7 +263,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 
     @SubscribeMessage('chosen-word')
-    handleEvent7(
+    handleEventChosenWord(
         @MessageBody() data: {room : string, chosenWord: string},
         @ConnectedSocket() client: Socket
     ) {
@@ -287,7 +287,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     @SubscribeMessage('playerLeft')
-    handleEvent8(
+    handleEventPlayerLeft(
         @MessageBody() data: {room : string, socketId: string},
         @ConnectedSocket() client: Socket
     ) {
