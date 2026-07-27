@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react'
 function Playground({ socket, roomCode, username }) {
     const [players, setPlayers] = useState([]);
     const [snapshot, setSnapshot] = useState({});
+    const [maxPlayers, setMaxPlayers] = useState(4);
+    const [drawTimer, setDrawTimer] = useState(60);
+    const [maxRounds, setMaxRounds] = useState(3);
+    const [gameMode, setGameMode] = useState('medium'); // 'easy' | 'medium' | 'hard'
 
     useEffect(() => {
         const handleSnapshot = (data) => {
@@ -31,6 +35,17 @@ function Playground({ socket, roomCode, username }) {
 
         return () => socket.off('Start-Game');
     }
+
+    const handleGameSettings = () => {
+        socket.emit('Game-Settings', {
+            room: roomCode,
+            maxNoOfPlayers: maxPlayers,
+            drawTimer: drawTimer,
+            maxRounds: maxRounds,
+            gameMode: gameMode
+        });
+    };
+
 
 
     return (
@@ -90,21 +105,77 @@ function Playground({ socket, roomCode, username }) {
                             ))}
                         </div>
 
-                        {/* only room creator sees settings and start button */}
                         {username === snapshot?.players[0] && (
                             <>
-                                {/* <div className="flex flex-col gap-2">
-                                    <label className="text-sm text-gray-600">Guess Duration (seconds)</label>
+                                {/* Max Players */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm text-gray-600">Max Players</label>
+                                    <input
+                                        type="range"
+                                        min="2"
+                                        max="8"
+                                        value={maxPlayers}
+                                        onChange={(e) => setMaxPlayers(Number(e.target.value))}
+                                        className="w-full"
+                                    />
+                                    <span className="text-sm text-center">{maxPlayers} players</span>
+                                </div>
+
+                                {/* Draw Timer */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm text-gray-600">Draw Timer (seconds)</label>
                                     <input
                                         type="range"
                                         min="30"
                                         max="120"
-                                        defaultValue="60"
+                                        value={drawTimer}
+                                        onChange={(e) => setDrawTimer(Number(e.target.value))}
                                         className="w-full"
-                                        onChange={(e) => setGuessDuration(e.target.value)}
                                     />
-                                    <span className="text-sm text-center">{guessDuration}s</span>
-                                </div> */}
+                                    <span className="text-sm text-center">{drawTimer}s</span>
+                                </div>
+
+                                {/* Max Rounds */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm text-gray-600">Rounds</label>
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="10"
+                                        value={maxRounds}
+                                        onChange={(e) => setMaxRounds(Number(e.target.value))}
+                                        className="w-full"
+                                    />
+                                    <span className="text-sm text-center">{maxRounds} rounds</span>
+                                </div>
+
+                                {/* Game Mode */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm text-gray-600">Difficulty</label>
+                                    <div className="flex gap-2">
+                                        {['easy', 'medium', 'hard'].map((mode) => (
+                                            <button
+                                                key={mode}
+                                                onClick={() => setGameMode(mode)}
+                                                className={`flex-1 py-2 rounded-lg capitalize ${
+                                                    gameMode === mode
+                                                        ? 'bg-blue-500 text-white'
+                                                        : 'bg-gray-100 text-gray-600'
+                                                }`}
+                                            >
+                                                {mode}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Save settings whenever they change */}
+                                <button
+                                    onClick={handleGameSettings}
+                                    className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600"
+                                >
+                                    Save Settings
+                                </button>
 
                                 <button
                                     onClick={handleStartGame}
