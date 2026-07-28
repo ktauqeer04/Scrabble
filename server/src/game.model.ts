@@ -27,13 +27,14 @@ export default class Game {
     playerIdx: number
     completeChooseAction: (() => void) | null;
     completeGuessAction: (() => void) | null;
+    completeHiddenAction: (() => void) | null;
     timerStartedAt: number | null;
     timerDuration: number;
     choosingTime: number;
     guessingTime: number;
     revealWordTime: number;
-    userIsDrawing: (() => void) | null;
-    displayWord: (() => void) | null;
+    // userIsDrawing: (() => void) | null;
+    // displayWord: (() => void) | null;
     timerScoreCard: ScoreEntry[] = [];
     maxPlayers: number;
     maxRounds: number;
@@ -55,14 +56,15 @@ export default class Game {
         this.correctGuesses = new Map();
         this.playerIdx = 0
         this.completeChooseAction = null
-        this.completeGuessAction = null
+        this.completeGuessAction = null;
+        this.completeHiddenAction = null;
         this.choosingTime = 20000;
         this.guessingTime = 50000;
         this.revealWordTime = 3000;
         this.timerStartedAt = 0;
         this.timerDuration = 0;
-        this.userIsDrawing = null
-        this.displayWord = null;
+        // this.userIsDrawing = null
+        // this.displayWord = null;
         this.timerScoreCard = []
         this.canvasSnapshot = [];
         this.maxPlayers = 5;
@@ -107,6 +109,7 @@ export default class Game {
 
         this.players.push(player);
         this.guessers.push(player);
+        this.scoreBoard.set(player, 0);
 
         return { success: true };
 
@@ -148,6 +151,8 @@ export default class Game {
 
         let threeWords: string[] = [];
 
+        console.log(this.gameMode);
+
         switch (this.gameMode){
 
             case GameMode.EASY:
@@ -160,11 +165,12 @@ export default class Game {
 
             case GameMode.HARD: 
                 threeWords = [...words.hard].sort(() => 0.5 - Math.random()).slice(0,3)
+                console.log("reached in game mode");
                 break;
         }
 
 
-        this.guessWords = threeWords
+        this.guessWords = threeWords;
 
 
         this.timerStartedAt = Date.now();
@@ -205,6 +211,7 @@ export default class Game {
         this.timerStartedAt = Date.now();
 
         this.guessTimer  = setTimeout(() => {
+
             if(isDone) return;
             isDone = true;
 
@@ -225,6 +232,33 @@ export default class Game {
         }
 
     }
+
+
+    showHiddenWord(onCompleteHiddenWord: () => void){
+
+
+        this.revealWordTimer = setTimeout(() => {
+            this.gameState = GameState.PLAYER_CHOOSING;
+            onCompleteHiddenWord();
+        }, 3000)
+
+
+        let isDone = false;
+        this.completeHiddenAction = () => {
+
+            if(isDone){
+                return;
+            }
+
+            isDone = true;
+            this.gameState= GameState.PLAYER_CHOOSING;
+
+            if(this.revealWordTimer) clearTimeout(this.revealWordTimer);
+            onCompleteHiddenWord();
+        }
+        
+    }
+
 
     checkGuess(word: string, player: string, onCorrectGuess:() => void, onCloseGuess: () => void, sendChat: () => void){
 
@@ -263,22 +297,12 @@ export default class Game {
 
         }
 
-        console.log("return works and everything after this gets called")
+        // console.log("return works and everything after this gets called")
 
         sendChat()
 
     }
 
-
-    showHiddenWord(onCompleteHiddenWord: () => void){
-
-
-        this.revealWordTimer = setTimeout(() => {
-            this.gameState = GameState.PLAYER_CHOOSING;
-            onCompleteHiddenWord();
-        }, 3000)
-        
-    }
 
 
     wordSelected(word: any) {
@@ -330,18 +354,17 @@ export default class Game {
         }
 
         this.playerSelectWord(() => {
-            this.startGuessingPhase(
-                () => {
+            this.startGuessingPhase(() => {
 
-                    this.showHiddenWord(() => {
+                this.showHiddenWord(() => {
 
-                        this.nextTurn(onBroadcast, onRoundComplete, displayWordAfterHiddenState, displayDrawerAfterChoosing);
-                        onBroadcast();
-                        
-                    })
+                    this.nextTurn(onBroadcast, onRoundComplete, displayWordAfterHiddenState, displayDrawerAfterChoosing);
+                    onBroadcast();
+                    
+                })
 
-                    this.markPlayerScores();
-                    onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
+                this.markPlayerScores();
+                onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
 
                 },
                 () => {
@@ -395,8 +418,8 @@ export default class Game {
 
     markPlayerScores() {
         const basePoints = 100;
-        const rankDecrement = 10; // 1st: 100, 2nd: 90, 3rd: 80...
-        const timeBonusWeight = 20; // max bonus points available for speed
+        const rankDecrement = 10; 
+        const timeBonusWeight = 20; 
 
         this.timerScoreCard.forEach(({player, time}, index) => {
             const rankScore = Math.max(basePoints - index * rankDecrement, 0);
@@ -406,6 +429,8 @@ export default class Game {
             const prevScore = this.scoreBoard.get(player) ?? 0;
             this.scoreBoard.set(player, prevScore + totalScore);
         });
+
+        // console.log(this.scoreBoard);
 
         this.timerScoreCard = [];
     }
@@ -456,6 +481,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
+                    scoreBoards: Object.fromEntries(this.scoreBoard),
                     timeLeft: this.getTimeinSeconds(this.choosingTime)
                 }
 
@@ -476,6 +502,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
+                    scoreBoards: Object.fromEntries(this.scoreBoard),
                     timeLeft: this.getTimeinSeconds(this.guessingTime)
                 }
             
@@ -491,6 +518,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
+                    scoreBoards: Object.fromEntries(this.scoreBoard),
                     timeLeft: this.getTimeinSeconds(3000)
                 }
             
@@ -509,6 +537,7 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
+                    scoreBoards: Object.fromEntries(this.scoreBoard),
                     // timeLeft: this.getTime()
                 }
             

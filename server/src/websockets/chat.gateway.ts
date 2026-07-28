@@ -8,19 +8,51 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server!: Server;
 
-    private rooms: Map<string, Game> = new Map();
-    private userSockets: Map<string, string> = new Map();
+    private roomsWithGame: Map<string, Game> = new Map();
+    private usernameWithClientId: Map<string, string> = new Map();
+    private clientWithRoom: Map<string,string> = new Map();
     //let rooms: 
 
+    // problem: handleDisconnect can only send clientId to the server, not the room
     handleDisconnect(client: Socket) {
 
-        this.userSockets.forEach((socketId, username) => {
+        this.usernameWithClientId.forEach((socketId, username) => {
+
             if(socketId === client.id){
-                this.userSockets.delete(username);
+
+                const room = this.clientWithRoom.get(socketId) as string;
+                const game = this.roomsWithGame.get(room) as Game;
+
+                if(username == game.drawer){
+
+                    if(game.gameState == GameState.PLAYER_CHOOSING){
+                        // call next player as a drawer with the game state as game choosing
+                        game.completeChooseAction?.();
+                        game.completeGuessAction?.();
+                        game.completeHiddenAction?.();
+                        // game.gameState = GameState.PLAYER_CHOOSING;
+                    }
+
+                    if(game.gameState == GameState.PLAYER_GUESSING){
+                        // finish the gameState of choosing and start hidden state
+                        game.completeGuessAction?.();
+                    }
+
+                }
+
+
+                const newPlayersArray = game.players.filter(name => name != username);
+                game.players = newPlayersArray;
+
+                this.usernameWithClientId.delete(username);
+
+                client.leave(room);
+
+                this.server.to(room).emit("playerLeft", `${username} has left the room`);
+                this.server.to(room).emit('game-snapshot', game?.getSnapshot())
             }
+
         })
-
-
 
     }
 
@@ -35,7 +67,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     ): any {
 
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState != GameState.PLAYER_GUESSING) return;
 
@@ -56,7 +88,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: { room: string, message: string, username: string},
         @ConnectedSocket() client: Socket,
     ){
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState == GameState.WAITING) return;
 
@@ -76,11 +108,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 
                 const guessedUsersSocketIds = new Array();
 
-                guessedUsersSocketIds.push(this.userSockets.get(game.drawer));
+                guessedUsersSocketIds.push(this.usernameWithClientId.get(game.drawer));
 
                 for (const [name, guess] of game.correctGuesses){
                     if(guess){
-                        guessedUsersSocketIds.push(this.userSockets.get(name));
+                        guessedUsersSocketIds.push(this.usernameWithClientId.get(name));
                     }
                 }
 
@@ -124,7 +156,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: { room: string, username: string },
         @ConnectedSocket() client: Socket,
     ){
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
         if(game?.gameState != GameState.PLAYER_GUESSING) return;
 
         if(data.username != game.drawer) return;
@@ -136,15 +168,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // user that creates this room is the first person to join the room 
     @SubscribeMessage('createRoom')
     handleEventCreateRoom(
-        @MessageBody() data: any,
+        @MessageBody() data: {
+            room: string,
+            username: string
+        },
         @ConnectedSocket() client: Socket,
     ){
         client.join(data.room);
-        this.userSockets.set(data.username, client.id);
+        this.usernameWithClientId.set(data.username, client.id);
+        this.clientWithRoom.set(client.id, data.room);
         // this.server.to(data.room).emit()
 
         const game = new Game();
-        this.rooms.set(data.room, game);
+        this.roomsWithGame.set(data.room, game);
         game.startGame();
         game.addPlayer(data.username);
 
@@ -153,14 +189,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // user joining the room are second onwards
     @SubscribeMessage('joinRoom')
-    handleEventJoinRoom(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+    handleEventJoinRoom(
+        @MessageBody() data: {
+            room: string, 
+            username: string
+        }, 
+        @ConnectedSocket() client: Socket
+    ) {
 
-        if (!this.rooms.has(data.room)) {
+        if (!this.roomsWithGame.has(data.room)) {
             client.emit('roomNotExists', { message: 'Room does not exist', flag: false });
             return;
         }
 
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
 
 
         const addplayer = game?.addPlayer(data.username);
@@ -171,7 +213,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        this.userSockets.set(data.username, client.id);
+        this.usernameWithClientId.set(data.username, client.id);
+        this.clientWithRoom.set(client.id, data.room);
 
         client.join(data.room); 
 
@@ -182,6 +225,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             client.emit("replayDrawing", game.canvasSnapshot);
         }
 
+        this.server.to(data.room).emit("joinRoom", `${data.username} has join the room`);
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
 
     }
@@ -198,7 +242,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket,
     ){
 
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
 
         game?.roundStart(() => {
 
@@ -245,21 +289,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
 
-    @SubscribeMessage('refreshPage')
-    handleEventRefreshPage(
-        @MessageBody() data: any,
-        @ConnectedSocket() client: Socket,
-    ){
+    // @SubscribeMessage('refreshPage')
+    // handleEventRefreshPage(
+    //     @MessageBody() data: any,
+    //     @ConnectedSocket() client: Socket,
+    // ){
 
-        client.join(data.room)
+    //     client.join(data.room)
 
-        const game = this.rooms.get(data.room);
-        this.userSockets.set(data.username, client.id);
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
-        // console.log(game?.players);
-        // console.log(client.id);
+    //     const game = this.rooms.get(data.room);
+    //     this.userSockets.set(data.username, client.id);
+    //     this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+    //     // console.log(game?.players);
+    //     // console.log(client.id);
 
-    }
+    // }
 
 
     @SubscribeMessage('chosen-word')
@@ -268,7 +312,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket
     ) {
 
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState != GameState.PLAYER_CHOOSING){
             client.disconnect(true);
@@ -292,7 +336,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket
     ) {
 
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
         // console.log(client.id)
         // const playerName = 
         // const index = game?.players.indexOf(data.)
@@ -307,7 +351,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
     ) {
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
         if (game?.gameState === GameState.PLAYER_GUESSING) {
             client.emit("replayDrawing", game.canvasSnapshot);
         }
@@ -319,7 +363,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: any, 
         @ConnectedSocket() client: Socket
     ) {
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
         if (game) {
             client.emit('game-snapshot', game.getSnapshot());
         }
@@ -339,11 +383,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket
     ){
 
-        const game = this.rooms.get(data.room);
+        const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState != GameState.WAITING){
             return;
         }
+
+        if(data.maxNoOfPlayers < game.players.length){
+            client.emit("Cannot decrease player count");
+            return;
+        }
+
+        // console.log(data);
 
         game?.setGameSettings(data.maxNoOfPlayers, data.drawTimer, data.maxRounds, data.gameMode);
 

@@ -37,6 +37,30 @@ const ChatRoom = ({socket, roomCode, username}) => {
     },[])
 
     useEffect(() => {
+        socket.on("playerLeft", (message) => {
+            try {
+                setChatMessages((prev) => [...prev, { text: message, type: 'normal' }])                
+            } catch (error) {
+                throw new Error("Error updating playerLeft messages: " + error.message);
+            }
+            console.log("playerLeft socket", message);
+        })
+        return () => socket.off("playerLeft");
+    }, [])
+
+    useEffect(() => {
+        socket.on("joinRoom", (message) => {
+            try {
+                setChatMessages((prev) => [...prev, { text: message, type: 'normal' }])                
+            } catch (error) {
+                throw new Error("Error updating joinRoom messages: " + error.message);
+            }
+            console.log("joinRoom socket", message);
+        })
+        return () => socket.off("joinRoom");
+    }, [])
+
+    useEffect(() => {
         socket.on("closeCorrectAnswer", (message) => {
             try {
                 setChatMessages((prev) => [...prev, { text: message, type: 'close' }])                

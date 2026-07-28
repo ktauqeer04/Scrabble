@@ -9,10 +9,12 @@ function Playground({ socket, roomCode, username }) {
     const [drawTimer, setDrawTimer] = useState(60);
     const [maxRounds, setMaxRounds] = useState(3);
     const [gameMode, setGameMode] = useState('medium'); // 'easy' | 'medium' | 'hard'
+    const [maxNoOfPlayersMessage, setMaxNoOfPlayersMessage] = useState("");
+
+    const playerNames = Object.keys(snapshot.scoreBoards ?? {});
 
     useEffect(() => {
         const handleSnapshot = (data) => {
-            setPlayers(data.players || []);
             setSnapshot(data);
         };
 
@@ -30,6 +32,14 @@ function Playground({ socket, roomCode, username }) {
     }, [snapshot]);
 
 
+    useEffect(() => {
+        socket.on("Cannot decrease player count", (message) => {
+            setMaxNoOfPlayersMessage(message || "Cannot decrease below current player count");
+        });
+        return () => socket.off("Cannot decrease player count");
+    }, [socket]);
+
+
     const handleStartGame = () => {
         socket.emit('Start-Game', { room: roomCode });
 
@@ -40,7 +50,7 @@ function Playground({ socket, roomCode, username }) {
         socket.emit('Game-Settings', {
             room: roomCode,
             maxNoOfPlayers: maxPlayers,
-            drawTimer: drawTimer,
+            drawTimer: drawTimer * 1000,
             maxRounds: maxRounds,
             gameMode: gameMode
         });
@@ -63,9 +73,13 @@ function Playground({ socket, roomCode, username }) {
                     <div className="flex-1 min-w-0 border border-gray-300 flex flex-col items-center justify-center p-3">
                         <h3 className="font-semibold mb-2">Players</h3>
                         <ul className="space-y-1 w-full overflow-y-auto">
-                            {players.map((player, idx) => (
-                                <li key={player.id ?? idx} className="text-sm text-center py-1 border-b border-gray-100">
-                                    {player.name ?? player.username ?? player}
+                            {playerNames.map((name) => (
+                                <li
+                                    key={name}
+                                    className="text-sm text-center py-1 border-b border-gray-100 flex justify-between px-2"
+                                >
+                                    <span>{name}</span>
+                                    <span className="font-medium">{snapshot.scoreBoards[name] ?? 0}</span>
                                 </li>
                             ))}
                         </ul>
@@ -108,52 +122,73 @@ function Playground({ socket, roomCode, username }) {
                         {username === snapshot?.players[0] && (
                             <>
                                 {/* Max Players */}
-                                <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between">
                                     <label className="text-sm text-gray-600">Max Players</label>
-                                    <input
-                                        type="range"
-                                        min="2"
-                                        max="8"
-                                        value={maxPlayers}
-                                        onChange={(e) => setMaxPlayers(Number(e.target.value))}
-                                        className="w-full"
-                                    />
-                                    <span className="text-sm text-center">{maxPlayers} players</span>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => {
+                                                const currentPlayerCount = snapshot?.players?.length || 2;
+                                                setMaxPlayers(p => Math.max(currentPlayerCount, p - 1)); // ← can't go below current players
+                                            }}
+                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
+                                        >
+                                            −
+                                        </button>
+                                        <span className="w-6 text-center">{maxPlayers}</span>
+                                        <button
+                                            onClick={() => setMaxPlayers(p => Math.min(8, p + 1))}
+                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Draw Timer */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm text-gray-600">Draw Timer (seconds)</label>
-                                    <input
-                                        type="range"
-                                        min="30"
-                                        max="120"
-                                        value={drawTimer}
-                                        onChange={(e) => setDrawTimer(Number(e.target.value))}
-                                        className="w-full"
-                                    />
-                                    <span className="text-sm text-center">{drawTimer}s</span>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm text-gray-600">Draw Timer (s)</label>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setDrawTimer(t => Math.max(30, t - 10))}
+                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
+                                        >
+                                            −
+                                        </button>
+                                        <span className="w-8 text-center">{drawTimer}</span>
+                                        <button
+                                            onClick={() => setDrawTimer(t => Math.min(120, t + 10))}
+                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Max Rounds */}
-                                <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between">
                                     <label className="text-sm text-gray-600">Rounds</label>
-                                    <input
-                                        type="range"
-                                        min="1"
-                                        max="10"
-                                        value={maxRounds}
-                                        onChange={(e) => setMaxRounds(Number(e.target.value))}
-                                        className="w-full"
-                                    />
-                                    <span className="text-sm text-center">{maxRounds} rounds</span>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setMaxRounds(r => Math.max(1, r - 1))}
+                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
+                                        >
+                                            −
+                                        </button>
+                                        <span className="w-6 text-center">{maxRounds}</span>
+                                        <button
+                                            onClick={() => setMaxRounds(r => Math.min(10, r + 1))}
+                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
                                 </div>
 
-                                {/* Game Mode */}
+                                {/* Game Mode stays the same */}
                                 <div className="flex flex-col gap-2">
                                     <label className="text-sm text-gray-600">Difficulty</label>
                                     <div className="flex gap-2">
-                                        {['easy', 'medium', 'hard'].map((mode) => (
+                                        {['EASY', 'MEDIUM', 'HARD'].map((mode) => (
                                             <button
                                                 key={mode}
                                                 onClick={() => setGameMode(mode)}
@@ -169,7 +204,6 @@ function Playground({ socket, roomCode, username }) {
                                     </div>
                                 </div>
 
-                                {/* Save settings whenever they change */}
                                 <button
                                     onClick={handleGameSettings}
                                     className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600"
