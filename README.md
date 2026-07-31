@@ -1,6 +1,9 @@
-Srabble is a multiplayer game where one is a drawer and the rests are the guessors. the guessors have to guess the word that resembles whatever the drawer draws. 
-Every guessors receive their respective points and after 3 rounds, the game is over with only 3 players being winners.
+# Scribble
 
-I made this game completely by myself, and this game gave me an inspiration to get in to multiplayer game development.
+Scribble is a multiplayer drawing and guessing game where one player takes on the role of the artist while others attempt to guess the word being illustrated. Players compete to correctly identify what the drawer is creating on the canvas.
 
-it is a very Basic game that uses websocket connections and simple game architecture where the game starts from a "START" state and shifts to its successive states ("WAITING", ""CHOOSING", "GUESSING", "HIDDEN_WORD"). and in the end, it ends with game "END" state.
+Each correct guess earns points for the guesser. After 3 rounds of drawing and guessing, the game concludes and the top 3 players with the highest scores are declared the winners.
+
+I developed this game independently as a solo project. I got interests in multiplayer game development.
+
+The game is built using WebSocket connections for real-time communication between players. It implements a state machine architecture where the game starts in START state and then WAITING -> CHOOSING -> GUESSING -> HIDDEN WORD -> CHOOSING -> GUESSING -> HIDDEN WORD till all the rounds given by the creator of the room ends, ending with the END state.
