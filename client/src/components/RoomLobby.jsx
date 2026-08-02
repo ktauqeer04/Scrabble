@@ -98,26 +98,50 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
 
   return (
     <>
-      
+      {/* Animated Background */}
+      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300 flex items-center justify-center p-4 relative overflow-hidden">
+        
+        {/* Satirical Note */}
+        <div className="absolute top-60 left-8 rotate-[-40deg] origin-top-left z-10">
+          <div className="bg-yellow-200 border-4 border-yellow-600 shadow-2xl p-4 max-w-xs transform hover:scale-105 transition-transform duration-200">
+            <p className="text-sm font-bold text-gray-800 leading-relaxed">
+              "I am a Back-End developer, not a designer, so of course I used my buddy claude to design me this game"
+            </p>
+            <div className="absolute -bottom-2 left-8 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-yellow-600"></div>
+          </div>
+        </div>
 
-      <div className="page">
-        <div className="card">
+        {/* Floating Shapes Animation */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-16 h-16 bg-yellow-300 rounded-full opacity-50 animate-bounce"></div>
+          <div className="absolute top-40 right-20 w-20 h-20 bg-pink-400 rounded-full opacity-40 animate-pulse"></div>
+          <div className="absolute bottom-32 left-1/4 w-12 h-12 bg-purple-300 rounded-full opacity-60 animate-bounce delay-100"></div>
+          <div className="absolute bottom-20 right-1/3 w-24 h-24 bg-blue-300 rounded-full opacity-30 animate-pulse delay-200"></div>
+        </div>
 
-          {/* ── Scrabble Title ── */}
-          <div className="scrabble-title">
-            {"SCRABBLE".split("").map((letter, i) => (
-              <div className="tile" key={i}>
-                {letter}
-                <span className="tile-pts">{TILE_POINTS[i]}</span>
+        {/* Main Card */}
+        <div className="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-2xl transform hover:scale-[1.02] transition-transform duration-300 border-8 border-purple-600">
+
+          {/* Scrabble Title */}
+          <div className="flex justify-center gap-2 mb-4 flex-wrap">
+            {"SCRIBBLE".split("").map((letter, i) => (
+              <div 
+                key={i}
+                className="relative bg-gradient-to-br from-yellow-200 to-yellow-400 rounded-lg shadow-lg w-12 h-12 flex items-center justify-center transform hover:rotate-12 hover:scale-110 transition-all duration-200 border-2 border-yellow-600"
+              >
+                <span className="text-2xl font-black text-purple-900">{letter}</span>
+                <span className="absolute bottom-0 right-1 text-xs font-bold text-purple-800">{TILE_POINTS[i]}</span>
               </div>
             ))}
           </div>
-          <p className="subtitle">Pick your vibe & jump in! 🌟</p>
+          <p className="text-center text-xl font-bold text-purple-600 mb-6 animate-pulse">Pick your vibe & jump in! 🌟</p>
 
-          {/* ── Username ── */}
-          <p className="label">🏷️ Your Name</p>
+          {/* Username Input */}
+          <p className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+            <span className="text-2xl">🏷️</span> Your Name
+          </p>
           <input
-            className="field"
+            className="w-full px-4 py-3 text-lg border-4 border-purple-300 rounded-2xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 outline-none transition-all duration-200 font-semibold text-gray-800 placeholder-gray-400 shadow-md"
             type="text"
             placeholder="Enter your username…"
             value={username}
@@ -125,38 +149,59 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
             maxLength={20}
           />
 
-          {/* ── Character Selection ── */}
-          <p className="label">🎭 Pick Your Character</p>
-          <div className="char-grid">
+          {/* Character Selection */}
+          <p className="text-lg font-bold text-gray-700 mb-3 mt-6 flex items-center gap-2">
+            <span className="text-2xl">🎭</span> Pick Your Character
+          </p>
+          <div className="grid grid-cols-4 gap-3 mb-4">
             {characters.map(c => (
               <button
                 key={c.id}
-                className={`char-btn${selectedChar === c.id ? " selected" : ""}`}
+                className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border-4 transition-all duration-200 transform hover:scale-105 hover:-rotate-2 ${
+                  selectedChar === c.id 
+                    ? 'border-green-500 bg-gradient-to-br from-green-100 to-green-200 shadow-xl scale-105' 
+                    : 'border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 hover:border-purple-400 shadow-md'
+                }`}
                 onClick={() => setSelectedChar(c.id)}
                 title={c.name}
               >
+                {selectedChar === c.id && (
+                  <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-xl font-bold shadow-lg animate-bounce">
+                    ✓
+                  </div>
+                )}
                 <img
                   src={c.img}
                   alt={c.name}
-                  className="char-img"
+                  className="w-16 h-16 object-cover rounded-xl mb-2"
                   onError={e => { e.currentTarget.src = DEFAULT_FALLBACK; }}
                 />
-                <span className="char-name">{c.name}</span>
+                <span className="text-sm font-bold text-gray-700">{c.name}</span>
               </button>
             ))}
           </div>
 
-          <p className={`selected-info${selected ? " active" : ""}`}>
+          <p className={`text-center text-sm font-semibold py-2 px-4 rounded-xl transition-all duration-300 ${
+            selected 
+              ? 'text-green-600 bg-green-100 border-2 border-green-400' 
+              : 'text-gray-400 bg-gray-50 border-2 border-gray-200'
+          }`}>
             {selected ? `✅ ${selected.name} selected!` : "No character chosen yet"}
           </p>
 
-          <hr className="divider" />
+          <hr className="my-6 border-t-4 border-purple-200 rounded-full" />
 
-          {/* ── Create Room ── */}
-          <p className="label">🏠 Create Room</p>
+          {/* Create Room */}
+          <p className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="text-2xl">🏠</span> Create Room
+          </p>
           
           <button
-            className="btn btn-create"
+            className={`w-full py-4 px-6 text-xl font-black rounded-2xl shadow-xl transform transition-all duration-200 border-4 mb-6 ${
+              canProceed
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-purple-700 hover:scale-105 hover:-rotate-1 active:scale-95'
+                : 'bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed opacity-60'
+            }`}
             onClick={() => {
               handleCreate();
               navigate("/game");
@@ -166,11 +211,17 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
             ✨ Create New Room
           </button>
 
-          {/* ── Join Room ── */}
-          <p className="label">🔑 Join Room</p>
-          <div className="join-row">
+          {/* Join Room */}
+          <p className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="text-2xl">🔑</span> Join Room
+          </p>
+          <div className="flex gap-3">
             <input
-              className="field field-inline"
+              className={`flex-1 px-4 py-3 text-lg border-4 rounded-2xl outline-none transition-all duration-200 font-semibold shadow-md ${
+                canProceed
+                  ? 'border-purple-300 focus:border-purple-500 focus:ring-4 focus:ring-purple-200 text-gray-800'
+                  : 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
               type="text"
               placeholder="Room code…"
               value={roomCode}
@@ -179,7 +230,11 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
               disabled={!canProceed}
             />
             <button
-              className="btn btn-join"
+              className={`px-8 py-3 text-lg font-black rounded-2xl shadow-xl transform transition-all duration-200 border-4 ${
+                canProceed
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-blue-700 hover:scale-105 active:scale-95'
+                  : 'bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed opacity-60'
+              }`}
               onClick={() => {
                 handleJoin();
               }}
@@ -190,10 +245,16 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
           </div>
 
           {!canProceed && (
-            <p className="warn">⚠️ Fill in name & character to continue</p>
+            <p className="mt-4 text-center text-orange-600 font-bold bg-orange-100 py-2 px-4 rounded-xl border-2 border-orange-300 animate-pulse">
+              ⚠️ Fill in name & character to continue
+            </p>
           )}
 
-          {toast && <div className="toast">{toast}</div>}
+          {toast && (
+            <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-2xl shadow-2xl font-bold text-lg border-4 border-white animate-bounce z-50">
+              {toast}
+            </div>
+          )}
         </div>
       </div>
     </> 
