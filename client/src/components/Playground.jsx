@@ -59,172 +59,213 @@ function Playground({ socket, roomCode, username }) {
 
 
     return (
-        <div className="flex h-screen relative"> {/* ← add relative */}
-            <div className="flex-1 min-w-0 border border-gray-300">
+        <div className="flex h-screen relative bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300">
+            {/* Left: Canvas */}
+            <div className="flex-1 min-w-0 m-4 rounded-3xl overflow-hidden border-4 border-purple-600 shadow-2xl bg-white">
                 <Canvas socket={socket} roomCode={roomCode} username={username}/>
             </div>
 
-            <div className="flex-1 min-w-0 border border-gray-500 flex flex-col h-screen">
-                <div className='h-16 flex items-center justify-center border border-gray-400 shrink-0'>
-                    Invite your friends using Room Code: {roomCode}
+            {/* Right: Players + Chat */}
+            <div className="flex-1 min-w-0 m-4 flex flex-col gap-4">
+                {/* Room Code Header */}
+                <div className="bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4 text-center">
+                    <p className="text-sm font-bold text-purple-600 mb-2">Invite your friends!</p>
+                    <div className="flex items-center justify-center gap-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl border-3 border-yellow-600 px-4 py-3">
+                        <span className="text-2xl font-black text-purple-900 tracking-wider">{roomCode}</span>
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(roomCode);
+                            }}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black text-sm rounded-xl border-3 border-blue-700 shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200"
+                        >
+                            Copy
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex-1 flex min-h-0">
-                    <div className="flex-1 min-w-0 border border-gray-300 flex flex-col items-center justify-center p-3">
-                        <h3 className="font-semibold mb-2">Players</h3>
-                        <ul className="space-y-1 w-full overflow-y-auto">
+                {/* Players & Chat Container */}
+                <div className="flex-1 flex gap-4 min-h-0">
+                    {/* Players Panel */}
+                    <div className="flex-1 bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4 flex flex-col">
+                        <h3 className="text-xl font-black text-purple-900 mb-3 text-center flex items-center justify-center gap-2">
+                            <span className="text-2xl">👥</span> Players
+                        </h3>
+                        <ul className="space-y-2 overflow-y-auto">
                             {playerNames.map((name) => (
                                 <li
                                     key={name}
-                                    className="text-sm text-center py-1 border-b border-gray-100 flex justify-between px-2"
+                                    className="flex justify-between items-center bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl border-3 border-yellow-600 px-4 py-3 shadow-md transform hover:scale-105 transition-all duration-200"
                                 >
-                                    <span>{name}</span>
-                                    <span className="font-medium">{snapshot.scoreBoards[name] ?? 0}</span>
+                                    <span className="font-bold text-gray-800">{name}</span>
+                                    <span className="px-3 py-1 bg-purple-600 text-white font-black rounded-lg text-sm">{snapshot.scoreBoards[name] ?? 0}</span>
                                 </li>
                             ))}
                         </ul>
                     </div>
 
-                    <div className="flex-1 min-w-0 border border-gray-300 flex flex-col items-center justify-center">
+                    {/* Chat Panel */}
+                    <div className="flex-1">
                         <ChatRoom socket={socket} roomCode={roomCode} username={username}/>
                     </div>
                 </div>
             </div>
 
+            {/* Lobby Overlay */}
             {snapshot?.gamestate === 'waiting' && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-8 w-96 flex flex-col gap-4">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/80 via-pink-900/80 to-yellow-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl border-8 border-purple-600 shadow-2xl p-8 w-full max-w-lg flex flex-col gap-5 transform hover:scale-[1.02] transition-transform duration-300">
                         
-                        <h2 className="text-2xl font-bold text-center">Game Lobby</h2>
-
-                        {/* room code */}
-                        <div className="flex items-center gap-2 bg-gray-100 p-3 rounded">
-                            <span className="font-mono text-lg">{roomCode}</span>
-                            <button
-                                onClick={() => navigator.clipboard.writeText(roomCode)}
-                                className="ml-auto text-sm text-blue-500"
-                            >
-                                Copy
-                            </button>
+                        {/* Title */}
+                        <div className="text-center">
+                            <h2 className="text-3xl font-black text-purple-900 mb-2">Game Lobby</h2>
+                            <p className="text-gray-600 font-bold">Waiting for players to join...</p>
                         </div>
 
-                        {/* players joined */}
-                        <div>
-                            <p className="text-sm text-gray-500 mb-2">Players joined:</p>
-                            {snapshot?.players.map((p, i) => (
-                                <div key={i} className="flex items-center gap-2 py-1">
-                                    <div className="w-2 h-2 rounded-full bg-green-500"/>
-                                    <span>{p}</span>
-                                </div>
-                            ))}
+                        {/* Room Code Display */}
+                        <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl border-4 border-yellow-600 p-4 shadow-lg">
+                            <p className="text-sm font-bold text-gray-700 mb-2 text-center">Room Code</p>
+                            <div className="flex items-center justify-center gap-3">
+                                <span className="text-3xl font-black text-purple-900 tracking-widest">{roomCode}</span>
+                                <button
+                                    onClick={() => navigator.clipboard.writeText(roomCode)}
+                                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black text-sm rounded-xl border-3 border-blue-700 shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Players Joined */}
+                        <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl border-4 border-green-600 p-4 shadow-lg">
+                            <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                <span className="text-xl">👥</span> Players joined:
+                            </p>
+                            <div className="space-y-2">
+                                {snapshot?.players.map((p, i) => (
+                                    <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-2 border-2 border-green-500">
+                                        <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"/>
+                                        <span className="font-bold text-gray-800">{p}</span>
+                                        {i === 0 && <span className="ml-auto text-xs font-black text-purple-600 bg-purple-100 px-2 py-1 rounded-lg">HOST</span>}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {username === snapshot?.players[0] && (
                             <>
-                                {/* Max Players */}
-                                <div className="flex items-center justify-between">
-                                    <label className="text-sm text-gray-600">Max Players</label>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => {
-                                                const currentPlayerCount = snapshot?.players?.length || 2;
-                                                setMaxPlayers(p => Math.max(currentPlayerCount, p - 1)); // ← can't go below current players
-                                            }}
-                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
-                                        >
-                                            −
-                                        </button>
-                                        <span className="w-6 text-center">{maxPlayers}</span>
-                                        <button
-                                            onClick={() => setMaxPlayers(p => Math.min(8, p + 1))}
-                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
+                                {/* Settings Card */}
+                                <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl border-4 border-purple-600 p-5 shadow-lg space-y-4">
+                                    <h3 className="text-lg font-black text-purple-900 text-center mb-3">Game Settings</h3>
 
-                                {/* Draw Timer */}
-                                <div className="flex items-center justify-between">
-                                    <label className="text-sm text-gray-600">Draw Timer (s)</label>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => setDrawTimer(t => Math.max(30, t - 10))}
-                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
-                                        >
-                                            −
-                                        </button>
-                                        <span className="w-8 text-center">{drawTimer}</span>
-                                        <button
-                                            onClick={() => setDrawTimer(t => Math.min(120, t + 10))}
-                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Max Rounds */}
-                                <div className="flex items-center justify-between">
-                                    <label className="text-sm text-gray-600">Rounds</label>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => setMaxRounds(r => Math.max(1, r - 1))}
-                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
-                                        >
-                                            −
-                                        </button>
-                                        <span className="w-6 text-center">{maxRounds}</span>
-                                        <button
-                                            onClick={() => setMaxRounds(r => Math.min(10, r + 1))}
-                                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Game Mode stays the same */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm text-gray-600">Difficulty</label>
-                                    <div className="flex gap-2">
-                                        {['EASY', 'MEDIUM', 'HARD'].map((mode) => (
+                                    {/* Max Players */}
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-bold text-gray-700">Max Players</label>
+                                        <div className="flex items-center gap-3">
                                             <button
-                                                key={mode}
-                                                onClick={() => setGameMode(mode)}
-                                                className={`flex-1 py-2 rounded-lg capitalize ${
-                                                    gameMode === mode
-                                                        ? 'bg-blue-500 text-white'
-                                                        : 'bg-gray-100 text-gray-600'
-                                                }`}
+                                                onClick={() => {
+                                                    const currentPlayerCount = snapshot?.players?.length || 2;
+                                                    setMaxPlayers(p => Math.max(currentPlayerCount, p - 1));
+                                                }}
+                                                className="w-10 h-10 rounded-xl bg-yellow-300 hover:bg-yellow-400 border-3 border-yellow-600 font-black text-xl shadow-md transform hover:scale-110 active:scale-95 transition-all duration-200"
                                             >
-                                                {mode}
+                                                −
                                             </button>
-                                        ))}
+                                            <span className="w-8 text-center font-black text-2xl text-purple-900">{maxPlayers}</span>
+                                            <button
+                                                onClick={() => setMaxPlayers(p => Math.min(8, p + 1))}
+                                                className="w-10 h-10 rounded-xl bg-yellow-300 hover:bg-yellow-400 border-3 border-yellow-600 font-black text-xl shadow-md transform hover:scale-110 active:scale-95 transition-all duration-200"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Draw Timer */}
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-bold text-gray-700">Draw Timer (s)</label>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setDrawTimer(t => Math.max(30, t - 10))}
+                                                className="w-10 h-10 rounded-xl bg-yellow-300 hover:bg-yellow-400 border-3 border-yellow-600 font-black text-xl shadow-md transform hover:scale-110 active:scale-95 transition-all duration-200"
+                                            >
+                                                −
+                                            </button>
+                                            <span className="w-12 text-center font-black text-2xl text-purple-900">{drawTimer}</span>
+                                            <button
+                                                onClick={() => setDrawTimer(t => Math.min(120, t + 10))}
+                                                className="w-10 h-10 rounded-xl bg-yellow-300 hover:bg-yellow-400 border-3 border-yellow-600 font-black text-xl shadow-md transform hover:scale-110 active:scale-95 transition-all duration-200"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Max Rounds */}
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-bold text-gray-700">Rounds</label>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setMaxRounds(r => Math.max(1, r - 1))}
+                                                className="w-10 h-10 rounded-xl bg-yellow-300 hover:bg-yellow-400 border-3 border-yellow-600 font-black text-xl shadow-md transform hover:scale-110 active:scale-95 transition-all duration-200"
+                                            >
+                                                −
+                                            </button>
+                                            <span className="w-8 text-center font-black text-2xl text-purple-900">{maxRounds}</span>
+                                            <button
+                                                onClick={() => setMaxRounds(r => Math.min(10, r + 1))}
+                                                className="w-10 h-10 rounded-xl bg-yellow-300 hover:bg-yellow-400 border-3 border-yellow-600 font-black text-xl shadow-md transform hover:scale-110 active:scale-95 transition-all duration-200"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Difficulty */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-sm font-bold text-gray-700">Difficulty</label>
+                                        <div className="flex gap-2">
+                                            {['EASY', 'MEDIUM', 'HARD'].map((mode) => (
+                                                <button
+                                                    key={mode}
+                                                    onClick={() => setGameMode(mode)}
+                                                    className={`flex-1 py-3 rounded-xl font-black text-sm border-3 shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 ${
+                                                        gameMode === mode
+                                                            ? 'bg-gradient-to-r from-green-400 to-green-500 text-white border-green-700'
+                                                            : 'bg-white text-gray-600 border-gray-400 hover:border-purple-400'
+                                                    }`}
+                                                >
+                                                    {mode}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
+                                {/* Action Buttons */}
                                 <button
                                     onClick={handleGameSettings}
-                                    className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600"
+                                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black text-lg rounded-2xl border-4 border-blue-700 shadow-xl transform hover:scale-105 active:scale-95 transition-all duration-200"
                                 >
                                     Save Settings
                                 </button>
 
                                 <button
                                     onClick={handleStartGame}
-                                    className="bg-green-500 text-white py-3 rounded-lg font-bold text-lg hover:bg-green-600"
+                                    className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-black text-xl rounded-2xl border-4 border-green-800 shadow-xl transform hover:scale-105 hover:-rotate-1 active:scale-95 transition-all duration-200"
                                 >
                                     Start Game!
                                 </button>
                             </>
                         )}
 
-                        {/* non-creators see waiting message */}
+                        {/* Non-host waiting message */}
                         {username !== snapshot?.players[0] && (
-                            <p className="text-center text-gray-500">
-                                Waiting for host to start the game...
-                            </p>
+                            <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl border-4 border-orange-400 p-6 text-center">
+                                <p className="text-lg font-bold text-orange-800 flex items-center justify-center gap-2">
+                                    <span className="text-2xl animate-pulse">⏳</span>
+                                    Waiting for host to start the game...
+                                </p>
+                            </div>
                         )}
 
                     </div>

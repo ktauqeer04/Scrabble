@@ -118,14 +118,26 @@ const ChatRoom = ({socket, roomCode, username}) => {
     }, []) 
 
     return (
-        <div className="flex flex-col w-full max-w-md h-96 border border-gray-500 rounded-lg shadow-sm overflow-hidden bg-white">
+        <div className="flex flex-col w-full h-full bg-white rounded-2xl border-4 border-purple-600 shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-br from-purple-100 to-pink-100 border-b-4 border-purple-600 p-3 text-center">
+                <h3 className="text-lg font-black text-purple-900 flex items-center justify-center gap-2">
+                    <span className="text-xl">💬</span> Chat
+                </h3>
+            </div>
+
             {/* Messages area - grows and scrolls */}
-            <ul className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+            <ul className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
                 {chatMessages.map((msg, key) => (
                     <li
                         key={key}
-                        className="px-2 py-1 rounded break-words border border-gray-300"
-                        style={{ backgroundColor: msg.type === 'close' ? 'yellow' : 'transparent' }}
+                        className={`px-3 py-2 rounded-xl break-words font-semibold text-sm border-3 shadow-md ${
+                            msg.type === 'close' 
+                                ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 border-yellow-600 text-yellow-900' 
+                                : msg.type === 'correctGuessers'
+                                ? 'bg-gradient-to-br from-green-200 to-green-300 border-green-600 text-green-900'
+                                : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300 text-gray-800'
+                        }`}
                     >
                         {msg.text}
                     </li>
@@ -136,17 +148,18 @@ const ChatRoom = ({socket, roomCode, username}) => {
             {/* Input bar - pinned to bottom */}
             <form
                 onSubmit={handleSubmit}
-                className="flex items-center gap-2 border-t px-2 py-2 shrink-0"
+                className="flex items-center gap-2 border-t-4 border-purple-600 bg-gradient-to-br from-purple-50 to-pink-50 px-3 py-3 shrink-0"
             >
                 <input
                     type="text"
-                    placeholder='type your answer'
-                    className="flex-1 border px-2 py-1 rounded"
+                    placeholder='Type your answer...'
+                    value={message}
+                    className="flex-1 border-3 border-purple-300 px-4 py-2 rounded-xl font-semibold text-gray-800 placeholder-gray-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-200 outline-none transition-all duration-200 shadow-md"
                     onChange={(e) => setMessage(e.target.value)}
                 />
                 <button
                     type="submit"
-                    className="border px-4 py-1 rounded text-black"
+                    className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-black rounded-xl border-3 border-purple-700 shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200"
                 >
                     Send
                 </button>
