@@ -10,12 +10,15 @@ function Playground({ socket, roomCode, username }) {
     const [maxRounds, setMaxRounds] = useState(3);
     const [gameMode, setGameMode] = useState('medium'); // 'easy' | 'medium' | 'hard'
     const [maxNoOfPlayersMessage, setMaxNoOfPlayersMessage] = useState("");
+    const [chooseWords, setChooseWords] = useState([]);
 
     const playerNames = Object.keys(snapshot.scoreBoards ?? {});
 
     useEffect(() => {
+
         const handleSnapshot = (data) => {
             setSnapshot(data);
+            setChooseWords(data.chooser.guessWords);
         };
 
         socket.on('game-snapshot', handleSnapshot);
@@ -26,6 +29,12 @@ function Playground({ socket, roomCode, username }) {
 
         return () => socket.off('game-snapshot', handleSnapshot);
     }, [socket, roomCode]); 
+
+
+    // useEffect(() => {
+    //     console.log("choseewords is", chooseWords);
+    // }, [chooseWords]);
+
 
     useEffect(() => {
         console.log('snapshot updated', snapshot);
@@ -62,7 +71,7 @@ function Playground({ socket, roomCode, username }) {
         <div className="flex h-screen relative bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300">
             {/* Left: Canvas */}
             <div className="flex-1 min-w-0 m-4 rounded-3xl overflow-hidden border-4 border-purple-600 shadow-2xl bg-white">
-                <Canvas socket={socket} roomCode={roomCode} username={username}/>
+                <Canvas socket={socket} roomCode={roomCode} username={username} words={chooseWords}/>
             </div>
 
             {/* Right: Players + Chat */}

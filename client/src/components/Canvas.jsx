@@ -7,7 +7,7 @@ const BRUSH_SIZES = [2, 6, 12, 24];
 
 
 
-export default function Canvas({socket, roomCode, username}) {
+export default function Canvas({socket, roomCode, username, words}) {
 
 
   const canvasRef = useRef(null);
@@ -153,6 +153,33 @@ export default function Canvas({socket, roomCode, username}) {
   return (
     <>
       <div className="cb-wrap">
+
+        {/* Word Selection Pop-up */}
+        {words && words.length > 0 && (
+          <div className="cb-word-popup-overlay">
+            <div className="cb-word-popup">
+              <div className="cb-word-popup-header">
+                <div className="cb-word-popup-title">Choose Your Word</div>
+                <div className="cb-word-popup-subtitle">Pick wisely, artist!</div>
+              </div>
+              <div className="cb-word-options">
+                {words.map((word, index) => (
+                  <button
+                    key={index}
+                    className="cb-word-option"
+                    onClick={() => {
+                      socket.emit("wordChosen", { room: roomCode, word: word, username: username });
+                    }}
+                  >
+                    <div className="cb-word-tile">
+                      {word}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="cb-toolbar">
