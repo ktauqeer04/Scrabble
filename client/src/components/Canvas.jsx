@@ -7,7 +7,7 @@ const BRUSH_SIZES = [2, 6, 12, 24];
 
 
 
-export default function Canvas({socket, roomCode, username, words}) {
+export default function Canvas({socket, roomCode, username, snapshot}) {
 
 
   const canvasRef = useRef(null);
@@ -150,12 +150,17 @@ export default function Canvas({socket, roomCode, username, words}) {
     return () => socket.off('replayDrawing');
   }, []);
 
+
+  useEffect(() => {
+    console.log("snapshot in canvas component", snapshot);
+  }, [snapshot]);
+
   return (
     <>
       <div className="cb-wrap">
 
         {/* Word Selection Pop-up */}
-        {words && words.length > 0 && (
+        {snapshot.gamestate == 'player_choosing' && snapshot.chooser.drawer == username && snapshot.chooser.guessWords && (
           <div className="cb-word-popup-overlay">
             <div className="cb-word-popup">
               <div className="cb-word-popup-header">
@@ -163,12 +168,12 @@ export default function Canvas({socket, roomCode, username, words}) {
                 <div className="cb-word-popup-subtitle">Pick wisely, artist!</div>
               </div>
               <div className="cb-word-options">
-                {words.map((word, index) => (
+                {snapshot.chooser.guessWords.map((word, index) => (
                   <button
                     key={index}
                     className="cb-word-option"
                     onClick={() => {
-                      socket.emit("wordChosen", { room: roomCode, word: word, username: username });
+                      socket.emit("chosen-word", { room: roomCode, chosenWord: word, username: username });
                     }}
                   >
                     <div className="cb-word-tile">
