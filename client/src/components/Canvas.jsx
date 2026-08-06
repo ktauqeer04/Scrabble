@@ -21,20 +21,32 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    ctx.fillStyle = "#ffffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const resizeCanvas = () => {
+        // save current drawing before resizing (resizing clears canvas)
+        const imageData = canvas.width && canvas.height 
+            ? ctx.getImageData(0, 0, canvas.width, canvas.height) 
+            : null;
+
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (imageData) {
+            ctx.putImageData(imageData, 0, 0); // restore drawing after resize
+        }
+    };
+
+    resizeCanvas(); // run once on mount
+
+    window.addEventListener('resize', resizeCanvas); // ← re-run on every resize
+    return () => window.removeEventListener('resize', resizeCanvas);
   }, []);
 
   const getPos = (e, canvas) => {
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
-    }
+    const rect = canvas.getBoundingClientRect(); // ← this now matches actual canvas size
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
