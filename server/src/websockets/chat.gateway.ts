@@ -44,12 +44,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 const newPlayersArray = game.players.filter(name => name != username);
                 game.players = newPlayersArray;
 
+                console.log('players array length ', game.players.length);
+
                 this.usernameWithClientId.delete(username);
 
                 client.leave(room);
 
+                if(game.players.length == 1){
+                    console.log('game has officially ended');
+                    // I need to end the game here, the game cannot be played with only 1 people in it. 
+                    // but I need to break all the running tasks
+                    game.gameState = GameState.ENDED;
+                    game.endGame();
+                }
+
                 this.server.to(room).emit("playerLeft", `${username} has left the room`);
                 this.server.to(room).emit('game-snapshot', game?.getSnapshot())
+
             }
 
         })
@@ -242,7 +253,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket,
     ){
 
-        const game = this.roomsWithGame.get(data.room);
+        const game = this.roomsWithGame.get(data.room) as Game;
+
+        if(game.players.length == 1){
+            client.emit('cannot-start-game', false);
+            return;
+        }
 
         game?.roundStart(() => {
 

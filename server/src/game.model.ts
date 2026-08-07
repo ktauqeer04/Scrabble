@@ -41,12 +41,19 @@ export default class Game {
     gameMode: GameMode;
 
     constructor() {
-        this.players = [];       
-        this.guessWords = words.medium;
-        this.winnerStack = [];
-        this.currentWord = '';
-        this.guessers = [];
+
+        //game settings that can be altered by admin
+        this.maxPlayers = 5;
+        this.maxRounds = 3;
+        this.guessingTime = 50000;
+        this.gameMode = GameMode.MEDIUM;
+
+        // natural game settings
+        this.players = [];    
+        this.guessers = [];   
         this.drawer = '';
+        this.guessWords = words.medium;
+        this.currentWord = '';
         this.scoreBoard = new Map<string, number>();
         this.chooseTimer = undefined;
         this.guessTimer = undefined;
@@ -59,7 +66,6 @@ export default class Game {
         this.completeGuessAction = null;
         this.completeHiddenAction = null;
         this.choosingTime = 20000;
-        this.guessingTime = 50000;
         this.revealWordTime = 3000;
         this.timerStartedAt = 0;
         this.timerDuration = 0;
@@ -67,9 +73,10 @@ export default class Game {
         // this.displayWord = null;
         this.timerScoreCard = []
         this.canvasSnapshot = [];
-        this.maxPlayers = 5;
-        this.maxRounds = 3;
-        this.gameMode = GameMode.MEDIUM;
+
+
+
+        this.winnerStack = [];
     }
 
 
@@ -153,6 +160,7 @@ export default class Game {
 
         console.log(this.gameMode);
 
+        // this can be done before the game officially starts
         switch (this.gameMode){
 
             case GameMode.EASY:
@@ -269,10 +277,8 @@ export default class Game {
 
             this.timerScoreCard.push({ player: player, time: timeOfGuess });
 
-            
             this.correctGuesses.set(player, true);
             onCorrectGuess();
-
 
             return;
             // this.playerScored();
@@ -391,6 +397,39 @@ export default class Game {
 
         const topThree = this.getTop3Players();
 
+        clearTimeout(this.chooseTimer);
+        clearTimeout(this.guessTimer);
+        clearTimeout(this.revealWordTimer);
+
+        //game settings that can be altered by admin
+        this.maxPlayers = 5;
+        this.maxRounds = 3;
+        this.guessingTime = 50000;
+        this.gameMode = GameMode.MEDIUM;
+
+        // natural game settings
+        this.guessers = [];   
+        this.drawer = '';
+        this.guessWords = words.medium;
+        this.currentWord = '';
+        this.scoreBoard = new Map<string, number>();
+        this.chooseTimer = undefined;
+        this.guessTimer = undefined;
+        this.revealWordTimer = undefined;
+        this.round = 1;
+        this.gameState = GameState.WAITING;
+        this.correctGuesses = new Map();
+        this.playerIdx = 0;
+        this.completeChooseAction = null
+        this.completeGuessAction = null;
+        this.completeHiddenAction = null;
+        this.choosingTime = 20000;
+        this.revealWordTime = 3000;
+        this.timerStartedAt = 0;
+        this.timerDuration = 0;
+        this.timerScoreCard = []
+        this.canvasSnapshot = [];
+        this.winnerStack = [];
 
     }
 

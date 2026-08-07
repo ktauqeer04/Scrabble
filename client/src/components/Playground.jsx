@@ -1,8 +1,12 @@
+import { useNavigate } from 'react-router-dom';
+import { useRoom } from '../context/RoomContext';
 import Canvas from './Canvas';
 import ChatRoom from './ChatRoom';
 import { useEffect, useState } from 'react'
 
-function Playground({ socket, roomCode, username }) {
+function Playground({ socket, username }) {
+    const navigate = useNavigate(); // ← move to the top
+    const { roomCode } = useRoom(); 
     const [players, setPlayers] = useState([]);
     const [snapshot, setSnapshot] = useState({});
     const [maxPlayers, setMaxPlayers] = useState(4);
@@ -10,8 +14,15 @@ function Playground({ socket, roomCode, username }) {
     const [maxRounds, setMaxRounds] = useState(3);
     const [gameMode, setGameMode] = useState('medium'); // 'easy' | 'medium' | 'hard'
     const [maxNoOfPlayersMessage, setMaxNoOfPlayersMessage] = useState("");
+    const [cannotStartGameError, setCannotStartGameError] = useState("");
 
     const playerNames = Object.keys(snapshot.scoreBoards ?? {});
+
+    useEffect(() => {
+        if (!roomCode) {
+            navigate('/');
+        }
+    }, []);
 
     useEffect(() => {
 
@@ -29,11 +40,6 @@ function Playground({ socket, roomCode, username }) {
     }, [socket, roomCode]); 
 
 
-    // useEffect(() => {
-    //     console.log("choseewords is", chooseWords);
-    // }, [chooseWords]);
-
-
     useEffect(() => {
         console.log('snapshot updated', snapshot);
     }, [snapshot]);
@@ -44,6 +50,15 @@ function Playground({ socket, roomCode, username }) {
             setMaxNoOfPlayersMessage(message || "Cannot decrease below current player count");
         });
         return () => socket.off("Cannot decrease player count");
+    }, [socket]);
+
+
+    useEffect(() => {
+        socket.on("cannot-start-game", (message) => {
+            setCannotStartGameError(message || "Cannot start game with only 1 player");
+            setTimeout(() => setCannotStartGameError(""), 3000);
+        });
+        return () => socket.off("cannot-start-game");
     }, [socket]);
 
 
@@ -255,6 +270,15 @@ function Playground({ socket, roomCode, username }) {
                                 >
                                     Save Settings
                                 </button>
+
+                                {cannotStartGameError && (
+                                    <div className="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl border-4 border-red-500 p-4 text-center shadow-lg">
+                                        <p className="text-sm font-bold text-red-700 flex items-center justify-center gap-2">
+                                            <span className="text-xl">⚠️</span>
+                                            {cannotStartGameError}
+                                        </p>
+                                    </div>
+                                )}
 
                                 <button
                                     onClick={handleStartGame}
