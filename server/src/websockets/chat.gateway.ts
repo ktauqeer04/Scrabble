@@ -305,23 +305,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
 
-    // @SubscribeMessage('refreshPage')
-    // handleEventRefreshPage(
-    //     @MessageBody() data: any,
-    //     @ConnectedSocket() client: Socket,
-    // ){
-
-    //     client.join(data.room)
-
-    //     const game = this.rooms.get(data.room);
-    //     this.userSockets.set(data.username, client.id);
-    //     this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
-    //     // console.log(game?.players);
-    //     // console.log(client.id);
-
-    // }
-
-
     @SubscribeMessage('chosen-word')
     handleEventChosenWord(
         @MessageBody() data: {room : string, chosenWord: string},
