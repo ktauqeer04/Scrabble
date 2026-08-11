@@ -23,6 +23,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 const room = this.clientWithRoom.get(socketId) as string;
                 const game = this.roomsWithGame.get(room) as Game;
 
+                const newPlayersArray = game.players.filter(name => name != username);
+                game.players = newPlayersArray;
+
                 if(username == game.drawer){
 
                     if(game.gameState == GameState.PLAYER_CHOOSING){
@@ -40,10 +43,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 }
 
-
-                const newPlayersArray = game.players.filter(name => name != username);
-                game.players = newPlayersArray;
-
                 console.log('players array length ', game.players.length);
 
                 this.usernameWithClientId.delete(username);
@@ -60,6 +59,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 this.server.to(room).emit("playerLeft", `${username} has left the room`);
                 this.server.to(room).emit('game-snapshot', game?.getSnapshot())
+
+                if(game.players.length == 0){
+
+                    game.endGame();
+
+                    this.roomsWithGame.delete(room);
+
+                    this.clientWithRoom.forEach((r, socketId) => {
+                        if(r == room){
+                            this.clientWithRoom.delete(socketId);
+                        }
+                    })
+
+                    console.log(`${room}  game has ended`);
+
+                }
 
             }
 
