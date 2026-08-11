@@ -25,6 +25,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 const newPlayersArray = game.players.filter(name => name != username);
                 game.players = newPlayersArray;
+                game.scoreBoard.delete(username);
+
 
                 if(username == game.drawer){
 
@@ -49,20 +51,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 client.leave(room);
 
+                //game ends when only one player is in the room
                 if(game.players.length == 1){
                     console.log('game has officially ended');
                     // I need to end the game here, the game cannot be played with only 1 people in it. 
                     // but I need to break all the running tasks
                     game.gameState = GameState.ENDED;
-                    game.endGame();
+                    game.endGame(() => {
+                        this.server.to(room).emit('gameWinner', `${game.winnerName} has won the game`);
+                    }, 
+                    () => {
+                        this.server.to(room).emit('game-snapshot', game.getSnapshot())
+                    } 
+                    )
                 }
 
                 this.server.to(room).emit("playerLeft", `${username} has left the room`);
+                console.log('game snapshot happens');
                 this.server.to(room).emit('game-snapshot', game?.getSnapshot())
 
+
+                //game ends when all the players leave the room
                 if(game.players.length == 0){
 
-                    game.endGame();
+                    game.endGame(() => {}, () => {}); // nothing to execute since all the players have left, but need an argument
 
                     this.roomsWithGame.delete(room);
 
@@ -72,7 +84,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                         }
                     })
 
-                    console.log(`${room}  game has ended`);
+                    console.log(`${room} game has ended`);
 
                 }
 
@@ -270,6 +282,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const game = this.roomsWithGame.get(data.room) as Game;
 
+        console.log('this.players: ', game.players);
+
         if(game.players.length == 1){
             client.emit('cannot-start-game', false);
             return;
@@ -286,7 +300,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // function parameters 
                     },
                     () => {
-                        game.roundEnd();
+                        game.endGame(() => {
+                            this.server.to(data.room).emit('gameWinner', `${game.winnerName} has won the game`);
+                        }, 
+                        () => {
+                            this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+                        }
+                    )
                         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // function parameters
                         this.server.to(data.room).emit('receiveRoundOverMessage', 'Game has Ended');
                     },
