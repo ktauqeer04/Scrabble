@@ -27,6 +27,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 game.players = newPlayersArray;
                 game.scoreBoard.delete(username);
 
+                this.server.to(room).emit("playerLeft", `${username} has left the room`);
 
                 if(username == game.drawer){
 
@@ -45,7 +46,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 }
 
-                console.log('players array length ', game.players.length);
+                // console.log('players array length ', game.players.length);
 
                 this.usernameWithClientId.delete(username);
 
@@ -66,7 +67,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                     )
                 }
 
-                this.server.to(room).emit("playerLeft", `${username} has left the room`);
                 console.log('game snapshot happens');
                 this.server.to(room).emit('game-snapshot', game?.getSnapshot())
 

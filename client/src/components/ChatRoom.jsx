@@ -117,6 +117,17 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("correctAnswer")
     }, []) 
 
+    useEffect(() => {
+        socket.on("gameWinner", (message) => {
+            try {
+                setChatMessages((prev) => [...prev, { text: message, type: 'winner' }]);
+            } catch (error) {
+                throw new Error("Error updating gameWinner messages: " + error.message);
+            }
+        })
+        return () => socket.off("gameWinner")
+    }, []) 
+
     return (
         <div className="flex flex-col w-full h-full bg-white rounded-2xl border-4 border-purple-600 shadow-xl overflow-hidden">
             {/* Header */}
@@ -136,6 +147,8 @@ const ChatRoom = ({socket, roomCode, username}) => {
                                 ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 border-yellow-600 text-yellow-900' 
                                 : msg.type === 'correctGuessers'
                                 ? 'bg-gradient-to-br from-green-200 to-green-300 border-green-600 text-green-900'
+                                : msg.type === 'winnerFplayer'
+                                ? 'bg-gradient-to-br from-red-200 to-red-300 border-red-600 text-red-900'
                                 : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300 text-gray-800'
                         }`}
                     >
