@@ -288,14 +288,13 @@ export default class Game {
             onCorrectGuess();
 
             return;
-            // this.playerScored();
 
         }
 
-        // console.log("return works and everything after this gets called")
-
         if(word.length == this.currentWord.length){
+
             let count = 0;
+
             for(let i = 0; i < word.length; i++){
                 if(word[i] != this.currentWord[i]){
                     count++;
@@ -305,12 +304,9 @@ export default class Game {
             if(count == 1) {
                 onCloseGuess();
             }
-
             return;
-
         }
 
-        // console.log("return works and everything after this gets called")
 
         sendChat()
 
@@ -351,7 +347,6 @@ export default class Game {
         this.currentWord = '';
         this.correctGuesses = new Map<string, boolean>(this.guessers.map(key => [key, false]));
         this.canvasSnapshot = [];
-        // this.gameState = GameState.PLAYER_CHOOSING;
         if(this.chooseTimer) { clearTimeout(this.chooseTimer); this.chooseTimer = undefined; }
         if(this.guessTimer) { clearTimeout(this.guessTimer); this.guessTimer = undefined; }
 
@@ -428,8 +423,6 @@ export default class Game {
             this.scoreBoard.set(player, prevScore + totalScore);
         });
 
-        // console.log(this.scoreBoard);
-
         this.timerScoreCard = [];
     }
 
@@ -438,10 +431,6 @@ export default class Game {
         .sort((a, b) => b[1] - a[1]) 
         .slice(0, 3);
     }
-
-    // getWinner(){
-        
-    // }
 
     endGame(onGameComplete: () => void, updateSnapshot: () => void) {        
 
@@ -520,7 +509,6 @@ export default class Game {
                     allGuessers: {
                         guessers: this.guessers,
                     },
-                    // timeLeft: this.getTime()
                 }
             
             case GameState.PLAYER_CHOOSING:
@@ -605,9 +593,3 @@ export default class Game {
     }
 
 }
-
-
-// players
-// words
-// currentWord
-// 

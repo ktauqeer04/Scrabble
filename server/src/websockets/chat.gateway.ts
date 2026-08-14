@@ -29,6 +29,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 this.server.to(room).emit("playerLeft", `${username} has left the room`);
 
+
                 if(username == game.drawer){
 
                     if(game.gameState == GameState.PLAYER_CHOOSING){
@@ -67,9 +68,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                     )
                 }
 
-                console.log('game snapshot happens');
                 this.server.to(room).emit('game-snapshot', game?.getSnapshot())
-
 
                 //game ends when all the players leave the room
                 if(game.players.length == 0){
@@ -94,7 +93,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     }
 
-    handleConnection(client: Socket, ...args: any[]) {
+    handleConnection(client: any, ...args: any[]) {
+        
     }
 
     @SubscribeMessage('draw')
@@ -215,7 +215,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.join(data.room);
         this.usernameWithClientId.set(data.username, client.id);
         this.clientWithRoom.set(client.id, data.room);
-        // this.server.to(data.room).emit()
 
         const game = new Game();
         this.roomsWithGame.set(data.room, game);
@@ -364,19 +363,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
     }
 
-    @SubscribeMessage('playerLeft')
-    handleEventPlayerLeft(
-        @MessageBody() data: {room : string, socketId: string},
-        @ConnectedSocket() client: Socket
-    ) {
+    // @SubscribeMessage('playerLeft')
+    // handleEventPlayerLeft(
+    //     @MessageBody() data: {room : string, socketId: string},
+    //     @ConnectedSocket() client: Socket
+    // ) {
 
-        const game = this.roomsWithGame.get(data.room);
-        // console.log(client.id)
-        // const playerName = 
-        // const index = game?.players.indexOf(data.)
+    //     const game = this.roomsWithGame.get(data.room);
        
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
-    }
+    //     console.log("player left event listened");
+
+    //     this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+    // }
 
 
     // server
