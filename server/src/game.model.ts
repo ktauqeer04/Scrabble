@@ -114,12 +114,6 @@ export default class Game {
             return { success: false, message: "Room full" }
         }
 
-        // if(this.gameState === GameState.PLAYER_CHOOSING){
-        //     this.players.push(player);
-        //     this.guessers.push(player);
-        //     return { success: true };
-        // }
-
         this.players.push(player);
         this.guessers.push(player);
         this.scoreBoard.set(player, 0);
@@ -134,6 +128,8 @@ export default class Game {
     // in other words: if there are 5 players playing, each will receive a chance of drawing and the remaining ones have to guess
     // round starts  
     roundStart(onComplete: () => void){
+
+        // console.log("value of scoreboard", this.scoreBoard);
 
         this.gameState = GameState.PLAYER_CHOOSING;
 
@@ -439,7 +435,7 @@ export default class Game {
         const topThree = this.getTop3Players();
         const winner = [...this.scoreBoard.entries()].reduce((highest, current) => {
             return current[1] > highest[1] ? current : highest;
-        });
+        }, ['', -Infinity]);
 
         this.winnerName = winner[0];
 
@@ -480,6 +476,9 @@ export default class Game {
             this.timerScoreCard = []
             this.canvasSnapshot = [];
             this.winnerStack = [];
+            this.scoreBoard.forEach((score, name) => {
+                this.scoreBoard.set(name, 0);
+            })
 
             updateSnapshot();
 
