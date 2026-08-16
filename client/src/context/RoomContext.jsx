@@ -49,30 +49,6 @@ export function RoomProvider({ children }) {
       socket.off('connect', handleConnect);
     };
   }, [roomCode, username]);
-
-
-
-  useEffect(() => {
-    if (username) return;
-
-    const timer = setTimeout(() => {
-      const handleConnect = () => {
-        socket.emit("playerLeft", { room: roomCode, socketId: socket.id });
-      };
-
-      if (socket.connected) {
-        handleConnect();
-      } else {
-        socket.on('connect', handleConnect);
-      }
-    }, 2200); // 2 - 2.5s window
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [username, roomCode]);
-
-
   
   return (
     <RoomContext.Provider value={{ socket, roomCode, setRoomCode, username, setUsername }}>

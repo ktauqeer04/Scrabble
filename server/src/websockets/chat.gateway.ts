@@ -97,28 +97,107 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         
     }
 
+
     @SubscribeMessage('draw')
     handleEventDraw(
-
         @MessageBody() data: { room: string, payload: any, username: string},
         @ConnectedSocket() client: Socket,
-
     ): any {
 
         const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState != GameState.PLAYER_GUESSING) return;
-
         if(data.username != game.drawer) return;
 
-        // console.log(typeof(data.payload));
-
+        // payload now carries a strokeId (see client changes) so segments
+        // belonging to one stroke can be undone together
         game.canvasSnapshot.push(data.payload);
 
         client.to(data.room).emit('updateDrawing', data.payload)
-
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+    }
 
+    @SubscribeMessage('bucketFill')
+    handleEventBucketFill(
+        @MessageBody() data: { room: string, payload: any, username: string },
+        @ConnectedSocket() client: Socket,
+    ): any {
+
+        const game = this.roomsWithGame.get(data.room);
+
+        if(game?.gameState != GameState.PLAYER_GUESSING) return;
+        if(data.username != game.drawer) return;
+
+        // payload: { x, y, color, tool: 'fill' }
+        game.canvasSnapshot.push(data.payload);
+
+        client.to(data.room).emit('updateBucketFill', data.payload)
+        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+    }
+
+    @SubscribeMessage('undoLastAction')
+    handleUndo(
+        @MessageBody() data: { room: string, username: string },
+        @ConnectedSocket() client: Socket,
+    ): any {
+
+        const game = this.roomsWithGame.get(data.room);
+
+        if(game?.gameState != GameState.PLAYER_GUESSING) return;
+        if(data.username != game.drawer) return;
+        if(!game.canvasSnapshot.length) return;
+
+        const last = game.canvasSnapshot[game.canvasSnapshot.length - 1];
+
+        if (last.tool === 'fill') {
+            // atomic action, pop just the one entry
+            game.canvasSnapshot.pop();
+        } else {
+            // stroke: pop every trailing segment that shares the last strokeId
+            const strokeId = last.strokeId;
+            while (
+                game.canvasSnapshot.length &&
+                game.canvasSnapshot[game.canvasSnapshot.length - 1].strokeId === strokeId
+            ) {
+                game.canvasSnapshot.pop();
+            }
+        }
+
+        // broadcast to EVERYONE (including the drawer) so all clients redraw
+        // from the same trimmed snapshot — avoids any client-side drift
+        this.server.to(data.room).emit('canvasUndo', game.canvasSnapshot);
+        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+    }
+
+    @SubscribeMessage('clearCanvas')
+    handleEventClearCanvas(
+        @MessageBody() data: { room: string, username: string },
+        @ConnectedSocket() client: Socket,
+    ){
+
+        const game = this.roomsWithGame.get(data.room);
+        if(game?.gameState != GameState.PLAYER_GUESSING) return;
+        if(data.username != game.drawer) return;
+
+        // bug fix: this was never cleared before, so late-joiners replayed
+        // strokes from before the clear
+        game.canvasSnapshot = [];
+
+        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        this.server.to(data.room).emit('updateCanvas')
+    }
+
+    @SubscribeMessage('requestReplay')
+    handleRequestReplay(
+        @MessageBody() data: any,
+        @ConnectedSocket() client: Socket,
+    ) {
+        const game = this.roomsWithGame.get(data.room);
+        if (game?.gameState === GameState.PLAYER_GUESSING) {
+            // canvasSnapshot is now a mixed array of stroke segments and fill
+            // entries — client's replay handler needs to branch on entry.tool
+            client.emit("replayDrawing", game.canvasSnapshot);
+        }
     }
 
     @SubscribeMessage('chatMessage')
@@ -189,18 +268,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
     }
 
-    @SubscribeMessage('clearCanvas')
-    handleEventClearCanvas(
-        @MessageBody() data: { room: string, username: string },
-        @ConnectedSocket() client: Socket,
-    ){
-        const game = this.roomsWithGame.get(data.room);
-        if(game?.gameState != GameState.PLAYER_GUESSING) return;
-
-        if(data.username != game.drawer) return;
-        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
-        this.server.to(data.room).emit('updateCanvas')
-    }
 
 
     // user that creates this room is the first person to join the room 
@@ -292,6 +359,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             game.startGuessingPhase(() => {
 
+                console.log("does this getss called??");
                 game.showHiddenWord(() => {
 
                     game.nextTurn(
@@ -310,22 +378,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                         this.server.to(data.room).emit('receiveRoundOverMessage', 'Game has Ended');
                     },
                     () => {
+
                         this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
+                        this.server.to(data.room).emit('updateCanvas');
+
                     },
                     () => {
                         this.server.to(data.room).emit('receiveDrawingMessage', `${game?.drawer} is drawing`)
+                    },
+                    () => {
+                        this.server.to(data.room).emit('updateCanvas');
                     }
                 )
 
                     this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+
                 })
 
                 game.markPlayerScores();
 
+                console.log("lets see if this gets called");
                 this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // third emit player choosing after 25 seconds of guessing 
+                console.log("updateCanvas event gets called");
+                this.server.to(data.room).emit('updateCanvas');
+
             },
             () => {
+
                 this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
+
             } 
             )
             
@@ -378,16 +459,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 
     // server
-    @SubscribeMessage('requestReplay')
-    handleRequestReplay(
-        @MessageBody() data: any,
-        @ConnectedSocket() client: Socket,
-    ) {
-        const game = this.roomsWithGame.get(data.room);
-        if (game?.gameState === GameState.PLAYER_GUESSING) {
-            client.emit("replayDrawing", game.canvasSnapshot);
-        }
-    }
 
 
     @SubscribeMessage('requestSnapshot')

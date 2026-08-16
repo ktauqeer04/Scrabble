@@ -213,7 +213,7 @@ export default class Game {
     // the guessers have to guess the word
     // this will work until the timer runs out or all players have guessed the word
 
-    startGuessingPhase(onCompleteGuessed: (() => void), displayWordAfterHiddenState: (() => void)){
+    startGuessingPhase(onCompleteGuessed: () => void, displayWordAfterHiddenState: () => void){
 
         let isDone = false;
 
@@ -239,7 +239,10 @@ export default class Game {
             this.gameState = GameState.HIDDEN_WORD;
 
             if(this.guessTimer) clearTimeout(this.guessTimer);
+
+            console.log("onCompleteGuessed() gets called");
             onCompleteGuessed();
+            console.log("after onCompleteGuessed() gets called");
         }
 
     }
@@ -318,6 +321,7 @@ export default class Game {
     }
 
     checkIfAllHasGuessed(): boolean{
+
         let endState = true;
 
         for (const [key, value] of this.correctGuesses){
@@ -335,7 +339,7 @@ export default class Game {
     }
 
     // recursion function that will on break once a single round has 
-    nextTurn(onBroadcast: () => void, onRoundComplete: () => void, displayWordAfterHiddenState: () => void, displayDrawerAfterChoosing: () => void){
+    nextTurn(onBroadcast: () => void, onRoundComplete: () => void, displayWordAfterHiddenState: () => void, displayDrawerAfterChoosing: () => void, resetCanvas: () => void){
 
 
         this.playerIdx -= 1;
@@ -362,13 +366,14 @@ export default class Game {
 
                 this.showHiddenWord(() => {
 
-                    this.nextTurn(onBroadcast, onRoundComplete, displayWordAfterHiddenState, displayDrawerAfterChoosing);
+                    this.nextTurn(onBroadcast, onRoundComplete, displayWordAfterHiddenState, displayDrawerAfterChoosing, resetCanvas);
                     onBroadcast();
                     
                 })
 
                 this.markPlayerScores();
                 onBroadcast(); // fifth event player choosing after player guessing for 25 seconds
+                resetCanvas();
 
                 },
                 () => {
