@@ -101,7 +101,7 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
       {/* Animated Background */}
       <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300 flex items-center justify-center p-4 relative overflow-hidden">
         
-        {/* Satirical Note */}F
+        {/* Satirical Note */}
         
         <div className="absolute top-60 left-8 rotate-[-40deg] origin-top-left z-10">
           <div className="bg-yellow-200 border-4 border-yellow-600 shadow-2xl p-4 max-w-xs transform hover:scale-105 transition-transform duration-200">

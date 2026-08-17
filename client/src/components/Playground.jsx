@@ -87,32 +87,61 @@ function Playground({ socket, username }) {
                 <Canvas socket={socket} roomCode={roomCode} username={username} snapshot={snapshot}/>
             </div>
 
-            {/* Right: Players + Chat */}
+            {/* Right: Game Info + Players + Chat */}
             <div className="flex-1 min-w-0 m-4 flex flex-col gap-4">
-                {/* Room Code Header */}
-                <div className="bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4 text-center">
-                    <p className="text-sm font-bold text-purple-600 mb-2">Invite your friends!</p>
-                    <div className="flex items-center justify-center gap-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl border-3 border-yellow-600 px-4 py-3">
-                        <span className="text-2xl font-black text-purple-900 tracking-wider">{roomCode}</span>
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(roomCode);
-                            }}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black text-sm rounded-xl border-3 border-blue-700 shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200"
-                        >
-                            Copy
-                        </button>
+                {/* Word Underscores Panel - TODO: Add hints, timer, and other game info here */}
+                <div className="bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4">
+                    <div className="flex items-center justify-between">
+                        {/* Rounds Display - Left Side */}
+                        <div className="flex-shrink-0">
+                            <span className="text-lg font-bold text-purple-600">
+                                Round {snapshot?.round || 1}/{snapshot?.maxRounds || 3}
+                            </span>
+                        </div>
+
+                        {/* Word Underscores - Center-Right */}
+                        <div className="flex flex-col items-center justify-center gap-1 flex-1">
+                            {snapshot?.gamestate === 'player_guessing' && snapshot?.currentWord ? (
+                                <>
+                                    <span className="text-xs font-bold text-gray-500 uppercase">
+                                        {snapshot?.chooser?.drawer === username ? 'Your Word' : 'Guess This'}
+                                    </span>
+                                    <div className="flex items-center justify-center gap-2">
+                                        {snapshot?.chooser?.drawer === username ? (
+                                            // Show the actual word for the drawer
+                                            <span className="text-3xl font-black text-purple-900">
+                                                {snapshot.currentWord}
+                                            </span>
+                                        ) : (
+                                            // Show underscores for guessers
+                                            Array.from(snapshot.currentWord).map((char, index) => (
+                                                <span
+                                                    key={index}
+                                                    className={`text-3xl font-black text-purple-900 px-1 pb-1 ${
+                                                        char === ' ' ? '' : 'border-b-4 border-purple-600'
+                                                    }`}
+                                                >
+                                                    {'\u00A0'}
+                                                </span>
+                                            ))
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <span className="text-lg font-bold text-gray-400">Waiting</span>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Players & Chat Container */}
-                <div className="flex-1 flex gap-4 min-h-0">
+                <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
                     {/* Players Panel */}
-                    <div className="flex-1 bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4 flex flex-col">
+                    <div className="flex-1 bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4 flex flex-col min-h-0">
                         <h3 className="text-xl font-black text-purple-900 mb-3 text-center flex items-center justify-center gap-2">
                             <span className="text-2xl">👥</span> Players
                         </h3>
-                        <ul className="space-y-2 overflow-y-auto">
+                        <ul className="space-y-2 overflow-y-auto flex-1">
                             {playerNames.map((name) => (
                                 <li
                                     key={name}
@@ -126,8 +155,24 @@ function Playground({ socket, username }) {
                     </div>
 
                     {/* Chat Panel */}
-                    <div className="flex-1">
+                    <div className="flex-1 min-h-0">
                         <ChatRoom socket={socket} roomCode={roomCode} username={username}/>
+                    </div>
+                </div>
+
+                {/* Room Code Section */}
+                <div className="bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-3 text-center">
+                    <p className="text-xs font-bold text-purple-600 mb-2">Invite your friends!</p>
+                    <div className="flex items-center justify-center gap-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl border-3 border-yellow-600 px-3 py-2">
+                        <span className="text-xl font-black text-purple-900 tracking-wider">{roomCode}</span>
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(roomCode);
+                            }}
+                            className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black text-xs rounded-xl border-3 border-blue-700 shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200"
+                        >
+                            Copy
+                        </button>
                     </div>
                 </div>
             </div>

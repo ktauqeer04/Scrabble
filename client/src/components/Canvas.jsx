@@ -14,11 +14,11 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
   const isDrawing = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
   const currentStrokeId = useRef(null);
-  const myActionCount = useRef(0); // how many of MY actions are undoable this turn
+  const myActionCount = useRef(0); 
 
   const [color, setColor] = useState("#1a1a2e");
   const [brushSize, setBrushSize] = useState(6);
-  const [tool, setTool] = useState("pen"); // pen | eraser | fill
+  const [tool, setTool] = useState("pen"); 
   const [timeLeft, setTimeLeft] = useState(0);
   const [isOverlayFadingOut, setIsOverlayFadingOut] = useState(false);
   const [isWaitingOverlayVisible, setIsWaitingOverlayVisible] = useState(false);
@@ -30,7 +30,6 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
     const ctx = canvas.getContext("2d");
 
     const resizeCanvas = () => {
-        // save current drawing before resizing (resizing clears canvas)
         const imageData = canvas.width && canvas.height 
             ? ctx.getImageData(0, 0, canvas.width, canvas.height) 
             : null;
@@ -42,18 +41,18 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (imageData) {
-            ctx.putImageData(imageData, 0, 0); // restore drawing after resize
+            ctx.putImageData(imageData, 0, 0); 
         }
     };
 
-    resizeCanvas(); // run once on mount
+    resizeCanvas(); 
 
-    window.addEventListener('resize', resizeCanvas); // ← re-run on every resize
+    window.addEventListener('resize', resizeCanvas);
     return () => window.removeEventListener('resize', resizeCanvas);
   }, []);
 
   const getPos = (e, canvas) => {
-    const rect = canvas.getBoundingClientRect(); // ← this now matches actual canvas size
+    const rect = canvas.getBoundingClientRect(); 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: clientX - rect.left, y: clientY - rect.top };
@@ -61,7 +60,6 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
 
   const genStrokeId = () => `${username}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  // ---------- Flood fill (runs identically on every client for a given payload) ----------
 
   const hexToRgba = (hex) => {
     let h = hex.replace("#", "");
@@ -247,10 +245,10 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
           y0: lastPos.current.y / canvas.height,
           x1: pos.x / canvas.width,
           y1: pos.y / canvas.height,
-          color: color,            // active color
-          size: brushSize,         // brush size
-          tool: tool,              // "pen" or "eraser"
-          strokeId: currentStrokeId.current, // groups segments for undo
+          color: color,           
+          size: brushSize,         
+          tool: tool,              
+          strokeId: currentStrokeId.current, 
           },
         username: username
       })
@@ -274,7 +272,7 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     socket.emit("clearCanvas", { room: roomCode, username: username });
-    // clear wipes server-side history for this turn, nothing left to undo
+    
     myActionCount.current = 0;
     setCanUndo(false);
   };
@@ -538,6 +536,23 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
               </div>
             </div>
           ) : null}
+
+          {snapshot?.gamestate === 'hidden_word' && snapshot?.currentWord && (
+            <div className="absolute inset-0 bg-gradient-to-br from-red-900/80 via-orange-900/80 to-yellow-900/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+              <div className="bg-white rounded-3xl border-8 border-red-600 shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+                <div className="text-6xl mb-4">⏰</div>
+                <h2 className="text-3xl font-black text-red-900 mb-6">
+                  Time's up!!!
+                </h2>
+                <div className="bg-gradient-to-r from-yellow-200 to-yellow-300 border-4 border-yellow-600 rounded-2xl p-6 shadow-lg">
+                  <p className="text-gray-700 font-bold text-lg mb-2">The correct word was:</p>
+                  <p className="text-purple-900 font-black text-3xl tracking-wide uppercase">
+                    {snapshot.currentWord}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

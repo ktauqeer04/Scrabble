@@ -117,6 +117,7 @@ export default class Game {
         this.players.push(player);
         this.guessers.push(player);
         this.scoreBoard.set(player, 0);
+        this.correctGuesses.set(player, false);
 
         return { success: true };
 
@@ -501,6 +502,7 @@ export default class Game {
                     gamestate: this.gameState,
                     players: this.players, 
                     round: this.round,
+                    maxRounds: this.maxRounds,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
                     gameMode: this.gameMode,
@@ -520,6 +522,7 @@ export default class Game {
                     gamestate: this.gameState,
                     players: this.players, 
                     round: this.round,
+                    maxRounds: this.maxRounds,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
                     gameMode: this.gameMode,
@@ -541,6 +544,7 @@ export default class Game {
                     gamestate: this.gameState,
                     players: this.players, 
                     round: this.round,
+                    maxRounds: this.maxRounds,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
                     gameMode: this.gameMode,
@@ -561,6 +565,8 @@ export default class Game {
                 return {
                     gamestate: this.gameState,
                     currentWord: this.currentWord,
+                    round: this.round,
+                    maxRounds: this.maxRounds,
                     // timer: this.timer,
                     chooser: {
                         guessWords: this.guessWords,
@@ -578,6 +584,7 @@ export default class Game {
                     gamestate: this.gameState,
                     players: this.players, 
                     round: this.round,
+                    maxRounds: this.maxRounds,
                     currentWord: this.currentWord,
                     scoreBoard: this.scoreBoard,
                     winnerStack: this.winnerStack,

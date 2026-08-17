@@ -135,6 +135,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
     }
 
+
+    // the last action of the drawer is checked, if they used bucket fill or a stroke
+    // if bucket filled then pop it out
+    // if it is a stroke, remove that stroke using the strokeId
     @SubscribeMessage('undoLastAction')
     handleUndo(
         @MessageBody() data: { room: string, username: string },
@@ -150,10 +154,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const last = game.canvasSnapshot[game.canvasSnapshot.length - 1];
 
         if (last.tool === 'fill') {
-            // atomic action, pop just the one entry
             game.canvasSnapshot.pop();
         } else {
-            // stroke: pop every trailing segment that shares the last strokeId
             const strokeId = last.strokeId;
             while (
                 game.canvasSnapshot.length &&
@@ -163,8 +165,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             }
         }
 
-        // broadcast to EVERYONE (including the drawer) so all clients redraw
-        // from the same trimmed snapshot — avoids any client-side drift
         this.server.to(data.room).emit('canvasUndo', game.canvasSnapshot);
         this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
     }
@@ -179,8 +179,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if(game?.gameState != GameState.PLAYER_GUESSING) return;
         if(data.username != game.drawer) return;
 
-        // bug fix: this was never cleared before, so late-joiners replayed
-        // strokes from before the clear
+        // since the canvas is suppose to be empty, the new users will never get whatever was drawn
         game.canvasSnapshot = [];
 
         client.to(data.room).emit('game-snapshot', game?.getSnapshot())
@@ -348,9 +347,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const game = this.roomsWithGame.get(data.room) as Game;
 
-        console.log('this.players: ', game.players);
-
-        if(game.players.length == 1){
+        if(game?.players.length == 1){
             client.emit('cannot-start-game', false);
             return;
         }
