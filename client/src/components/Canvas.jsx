@@ -390,7 +390,7 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
 
     return () => clearInterval(interval);
 
-  }, [snapshot?.gamestate]);
+  }, [snapshot]);
 
   return (
     <>
@@ -518,7 +518,7 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
             </div>
           )}
 
-          {(snapshot?.gamestate === 'player_choosing' && snapshot?.chooser?.drawer !== username) || isWaitingOverlayVisible ? (
+          {((snapshot?.gamestate === 'player_choosing' && snapshot?.chooser?.drawer !== username) || isWaitingOverlayVisible) && snapshot?.chooser?.drawer !== username ? (
             <div className={`absolute inset-0 bg-gradient-to-br from-purple-900/80 via-pink-900/80 to-yellow-900/80 backdrop-blur-sm flex items-center justify-center z-50 ${
               snapshot?.gamestate === 'player_choosing' && snapshot?.chooser?.drawer !== username ? 'animate-fadeIn' : 'animate-fadeOut'
             }`}>
