@@ -63,12 +63,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                         this.server.to(room).emit('gameWinner', `${game.winnerName} has won the game`);
                     }, 
                     () => {
-                        this.server.to(room).emit('game-snapshot', game.getSnapshot())
+                        this.broadcastPersonalizedSnapshot(room, game);
+                        // this.server.to(room).emit('game-snapshot', game.getSnapshot())
                     } 
                     )
                 }
 
-                this.server.to(room).emit('game-snapshot', game?.getSnapshot())
+                this.broadcastPersonalizedSnapshot(room, game);
+                // this.server.to(room).emit('game-snapshot', game?.getSnapshot())
 
                 //game ends when all the players leave the room
                 if(game.players.length == 0){
@@ -97,6 +99,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         
     }
 
+    private broadcastPersonalizedSnapshot(room: string, game: Game) {
+        const socketsInRoom = this.server.sockets.adapter.rooms.get(room);
+        if (!socketsInRoom) return;
+
+        socketsInRoom.forEach(socketId => {
+            const username = [...this.usernameWithClientId.entries()]
+                .find(([_, id]) => id === socketId)?.[0];
+
+            this.server.to(socketId).emit('game-snapshot', game.getSnapshot(username));
+        });
+    }
+
 
     @SubscribeMessage('draw')
     handleEventDraw(
@@ -114,7 +128,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         game.canvasSnapshot.push(data.payload);
 
         client.to(data.room).emit('updateDrawing', data.payload)
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        this.broadcastPersonalizedSnapshot(data.room, game);
     }
 
     @SubscribeMessage('bucketFill')
@@ -132,7 +147,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         game.canvasSnapshot.push(data.payload);
 
         client.to(data.room).emit('updateBucketFill', data.payload)
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        this.broadcastPersonalizedSnapshot(data.room, game);
     }
 
 
@@ -166,7 +182,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
 
         this.server.to(data.room).emit('canvasUndo', game.canvasSnapshot);
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+        // this.broadcastPersonalizedSnapshot(data.room, game);
+        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
     }
 
     @SubscribeMessage('clearCanvas')
@@ -182,8 +199,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // since the canvas is suppose to be empty, the new users will never get whatever was drawn
         game.canvasSnapshot = [];
 
-        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
-        this.server.to(data.room).emit('updateCanvas')
+        // client.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        // this.broadcastPersonalizedSnapshot(data.room, game);
+        this.server.to(data.room).emit('updateCanvas');
     }
 
     @SubscribeMessage('requestReplay')
@@ -263,7 +281,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         console.log("last event ")
 
-        client.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        // client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
     }
 
@@ -287,7 +305,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         game.startGame();
         game.addPlayer(data.username);
 
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+        this.broadcastPersonalizedSnapshot(data.room, game);
     }
 
     // user joining the room are second onwards
@@ -305,7 +324,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        const game = this.roomsWithGame.get(data.room);
+        const game = this.roomsWithGame.get(data.room) as Game;
 
 
         const addplayer = game?.addPlayer(data.username);
@@ -329,7 +348,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
 
         this.server.to(data.room).emit("joinRoom", `${data.username} has join the room`);
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
+        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
+        this.broadcastPersonalizedSnapshot(data.room, game);
 
     }
 
@@ -361,17 +381,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                     game.nextTurn(
                     () => {
-                        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // function parameters 
+                        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // function parameters 
+                        this.broadcastPersonalizedSnapshot(data.room, game);
                     },
                     () => {
                         game.endGame(() => {
                             this.server.to(data.room).emit('gameWinner', `${game.winnerName} has won the game`);
                         }, 
                         () => {
-                            this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+                            // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+                            this.broadcastPersonalizedSnapshot(data.room, game);
                         }
                     )
-                        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // function parameters
+                        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // function parameters
+                        this.broadcastPersonalizedSnapshot(data.room, game);
                         this.server.to(data.room).emit('receiveRoundOverMessage', 'Game has Ended');
                     },
                     () => {
@@ -388,14 +411,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                     }
                 )
 
-                    this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+                    // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+                    this.broadcastPersonalizedSnapshot(data.room, game);
 
                 })
 
                 game.markPlayerScores();
 
                 console.log("lets see if this gets called");
-                this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // third emit player choosing after 25 seconds of guessing 
+                // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // third emit player choosing after 25 seconds of guessing 
+                this.broadcastPersonalizedSnapshot(data.room, game);
                 console.log("updateCanvas event gets called");
                 this.server.to(data.room).emit('updateCanvas');
 
@@ -408,11 +433,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             )
             
             this.server.to(data.room).emit('receiveDrawingMessage', `${game?.drawer} is drawing`)
-            this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // second emit player guessing after 20 seconds of choosing
+            // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // second emit player guessing after 20 seconds of choosing
+            this.broadcastPersonalizedSnapshot(data.room, game);
 
         });
 
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // first emit player choosing immediately
+        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // first emit player choosing immediately
+        this.broadcastPersonalizedSnapshot(data.room, game);
 
     }
 
@@ -438,7 +465,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         game?.wordSelected(data.chosenWord);
         game?.completeChooseAction?.();
 
-        this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
+        this.broadcastPersonalizedSnapshot(data.room, game);
     }
 
     // @SubscribeMessage('playerLeft')

@@ -494,7 +494,18 @@ export default class Game {
 
     }
 
-    getSnapshot() {
+    getSnapshot(forUsername?: string) {
+
+        const canSeeWord = forUsername === this.drawer || this.correctGuesses.get(forUsername ?? '') === true;
+
+        const maskedWord = this.currentWord
+            ? (canSeeWord ? this.currentWord : this.currentWord.replace(/[a-zA-Z]/g, '_'))
+            : this.currentWord;
+
+        const chooser = {
+            guessWords: forUsername === this.drawer ? this.guessWords : [], // ← only drawer sees the 3 choices
+            drawer: this.drawer
+        };
 
         switch(this.gameState){
             case GameState.WAITING:
@@ -503,15 +514,11 @@ export default class Game {
                     players: this.players, 
                     round: this.round,
                     maxRounds: this.maxRounds,
-                    currentWord: this.currentWord,
+                    currentWord: maskedWord,
                     scoreBoard: this.scoreBoard,
                     gameMode: this.gameMode,
-                    // timer: this.timer,
                     winnerStack: this.winnerStack,
-                    chooser: {
-                        guessWords: this.guessWords,
-                        drawer: this.drawer
-                    },
+                    chooser: chooser,
                     allGuessers: {
                         guessers: this.guessers,
                     },
@@ -523,15 +530,11 @@ export default class Game {
                     players: this.players, 
                     round: this.round,
                     maxRounds: this.maxRounds,
-                    currentWord: this.currentWord,
+                    currentWord: maskedWord,
                     scoreBoard: this.scoreBoard,
                     gameMode: this.gameMode,
-                    // timer: this.timer,
                     winnerStack: this.winnerStack,
-                    chooser: {
-                        guessWords: this.guessWords,
-                        drawer: this.drawer
-                    },
+                    chooser: chooser,
                     allGuessers: {
                         guessers: this.guessers,
                     },
@@ -545,15 +548,11 @@ export default class Game {
                     players: this.players, 
                     round: this.round,
                     maxRounds: this.maxRounds,
-                    currentWord: this.currentWord,
+                    currentWord: maskedWord,
                     scoreBoard: this.scoreBoard,
                     gameMode: this.gameMode,
-                    // timer: this.timer,
                     winnerStack: this.winnerStack,
-                    chooser: {
-                        guessWords: this.guessWords,
-                        drawer: this.drawer
-                    },
+                    chooser: chooser,
                     allGuessers: {
                         guessers: this.guessers,
                     },
@@ -564,14 +563,10 @@ export default class Game {
             case GameState.HIDDEN_WORD : 
                 return {
                     gamestate: this.gameState,
-                    currentWord: this.currentWord,
+                    currentWord: this.currentWord, // ← reveal to everyone during reveal phase, that's the point of this state
                     round: this.round,
                     maxRounds: this.maxRounds,
-                    // timer: this.timer,
-                    chooser: {
-                        guessWords: this.guessWords,
-                        drawer: this.drawer
-                    },
+                    chooser: chooser,
                     allGuessers: {
                         guessers: this.guessers,
                     },
@@ -585,22 +580,17 @@ export default class Game {
                     players: this.players, 
                     round: this.round,
                     maxRounds: this.maxRounds,
-                    currentWord: this.currentWord,
+                    currentWord: this.currentWord, // ← game over, safe to reveal
                     scoreBoard: this.scoreBoard,
                     winnerStack: this.winnerStack,
-                    chooser: {
-                        guessWords: this.guessWords,
-                        drawer: this.drawer
-                    },
+                    chooser: chooser,
                     allGuessers: {
                         guessers: this.guessers,
                     },
                     scoreBoards: Object.fromEntries(this.scoreBoard),
-                    // timeLeft: this.getTime()
                 }
             
         }
-
     }
 
 }
