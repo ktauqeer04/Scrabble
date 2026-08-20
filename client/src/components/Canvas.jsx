@@ -25,6 +25,9 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
   const [prevGameState, setPrevGameState] = useState(null);
   const [canUndo, setCanUndo] = useState(false);
 
+  // Check if current user is allowed to draw
+  const canDraw = snapshot?.gamestate === 'player_guessing' && snapshot?.chooser?.drawer === username;
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -205,6 +208,8 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
   // ---------- Drawing handlers ----------
 
   const startDrawing = useCallback((e) => {
+    if (!canDraw) return; // Block drawing if not the drawer during player_guessing
+    
     e.preventDefault();
     const canvas = canvasRef.current;
     const pos = getPos(e, canvas);
@@ -217,9 +222,10 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
     isDrawing.current = true;
     currentStrokeId.current = genStrokeId();
     lastPos.current = pos;
-  }, [tool, performFill]);
+  }, [tool, performFill, canDraw]);
 
   const draw = useCallback((e) => {
+    if (!canDraw) return; // Block drawing if not the drawer during player_guessing
 
     e.preventDefault();
     if (!isDrawing.current) return;
@@ -255,7 +261,7 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
 
     lastPos.current = pos;
 
-  }, [color, brushSize, tool]);
+  }, [color, brushSize, tool, canDraw]);
 
   const stopDrawing = useCallback(() => {
     if (isDrawing.current && currentStrokeId.current) {
@@ -485,7 +491,7 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
         <div className="cb-canvas-wrap" style={{ position: 'relative' }}>
           <canvas
             ref={canvasRef}
-            className={tool === "eraser" ? "cur-erase" : tool === "fill" ? "cur-fill" : "cur-pen"}
+            className={canDraw ? (tool === "eraser" ? "cur-erase" : tool === "fill" ? "cur-fill" : "cur-pen") : ""}
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -493,6 +499,7 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
             onTouchStart={startDrawing}
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
+            style={{ cursor: canDraw ? undefined : 'default' }}
           />
 
           {snapshot?.gamestate === 'player_choosing' && snapshot?.chooser?.drawer === username && snapshot?.chooser?.guessWords && (

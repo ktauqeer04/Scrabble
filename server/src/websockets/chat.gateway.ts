@@ -234,11 +234,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             // and the drawer
             // check condition to get the correct guessors
 
-            if(game.drawer == data.username){
-                return;
-            }
+            // if(game.drawer == data.username){
+            //     // this.server.to(guessedUsersSocketIds).emit('receiveCorrectChatMessage', data.message);
+            //     return;
+            // }
 
-            if(game.correctGuesses.get(data.username) == true){
+            if(game.correctGuesses.get(data.username) == true || game.drawer == data.username){
                 
                 const guessedUsersSocketIds = new Array();
 
@@ -404,7 +405,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                     },
                     () => {
-                        this.server.to(data.room).emit('receiveDrawingMessage', `${game?.drawer} is drawing`)
+                        this.server.to(data.room).emit('receiveDrawerMessage', `${game?.drawer} is drawing`)
                     },
                     () => {
                         this.server.to(data.room).emit('updateCanvas');
@@ -432,7 +433,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             } 
             )
             
-            this.server.to(data.room).emit('receiveDrawingMessage', `${game?.drawer} is drawing`)
+            this.server.to(data.room).emit('receiveDrawerMessage', `${game?.drawer} is drawing`)
             // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()) // second emit player guessing after 20 seconds of choosing
             this.broadcastPersonalizedSnapshot(data.room, game);
 

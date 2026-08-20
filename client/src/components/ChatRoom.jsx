@@ -36,10 +36,12 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("receiveChatMessage");
     },[])
 
+
+    // red
     useEffect(() => {
         socket.on("playerLeft", (message) => {
             try {
-                setChatMessages((prev) => [...prev, { text: message, type: 'normal' }])                
+                setChatMessages((prev) => [...prev, { text: message, type: 'left' }])                
             } catch (error) {
                 throw new Error("Error updating playerLeft messages: " + error.message);
             }
@@ -48,10 +50,11 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("playerLeft");
     }, [])
 
+    // green
     useEffect(() => {
         socket.on("joinRoom", (message) => {
             try {
-                setChatMessages((prev) => [...prev, { text: message, type: 'normal' }])                
+                setChatMessages((prev) => [...prev, { text: message, type: 'join' }])                
             } catch (error) {
                 throw new Error("Error updating joinRoom messages: " + error.message);
             }
@@ -60,6 +63,7 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("joinRoom");
     }, [])
 
+    //yellow
     useEffect(() => {
         socket.on("closeCorrectAnswer", (message) => {
             try {
@@ -72,10 +76,11 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("closeCorrectAnswer");
     }, [])
 
+    // gray
     useEffect(() => {
         socket.on("receiveCorrectChatMessage", (message) => {
             try{
-                setChatMessages((prev) => [...prev, { text: message, type: 'correctGuessers' }]);
+                setChatMessages((prev) => [...prev, { text: message, type: 'correctGuessersChat' }]);
             } catch (error) {
                 throw new Error("Error updating receiveCorrectChatMessage messages: " + error.message);
             }
@@ -84,10 +89,11 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("receiveCorrectChatMessage")
     }, [])
 
+    // pink
     useEffect(() => {
         socket.on("receiveRoundOverMessage", (message) => {
             try {
-                setChatMessages((prev) => [...prev, { text: message }]);
+                setChatMessages((prev) => [...prev, { text: message, type: 'over' }]);
             } catch (error) {
                 throw new Error("Error updating receiveRoundOverMessage messages: " + error.message);
             }
@@ -95,21 +101,23 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("receiveRoundOverMessage")
     }, []) 
 
+    //blue
      useEffect(() => {
-        socket.on("receiveDrawingMessage", (message) => {
+        socket.on("receiveDrawerMessage", (message) => {
             try {
-                setChatMessages((prev) => [...prev, { text: message }]);
+                setChatMessages((prev) => [...prev, { text: message, type: 'draw' }]);
             } catch (error) {
-                throw new Error("Error updating receiveDrawingMessage messages: " + error.message);
+                throw new Error("Error updating receiveDrawerMessage messages: " + error.message);
             }
         })
-        return () => socket.off("receiveDrawingMessage")
+        return () => socket.off("receiveDrawerMessage")
     }, []) 
 
+    //green
     useEffect(() => {
         socket.on("correctAnswer", (message) => {
             try {
-                setChatMessages((prev) => [...prev, { text: message }]);
+                setChatMessages((prev) => [...prev, { text: message, type: 'correctAnswer' }]);
             } catch (error) {
                 throw new Error("Error updating correctAnswer messages: " + error.message);
             }
@@ -117,6 +125,7 @@ const ChatRoom = ({socket, roomCode, username}) => {
         return () => socket.off("correctAnswer")
     }, []) 
 
+    // orange
     useEffect(() => {
         socket.on("gameWinner", (message) => {
             try {
@@ -143,12 +152,22 @@ const ChatRoom = ({socket, roomCode, username}) => {
                     <li
                         key={key}
                         className={`px-3 py-2 rounded-xl break-words font-semibold text-sm border-3 shadow-md ${
-                            msg.type === 'close' 
-                                ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 border-yellow-600 text-yellow-900' 
-                                : msg.type === 'correctGuessers'
-                                ? 'bg-gradient-to-br from-green-200 to-green-300 border-green-600 text-green-900'
-                                : msg.type === 'winnerFplayer'
+                            msg.type === 'left' 
                                 ? 'bg-gradient-to-br from-red-200 to-red-300 border-red-600 text-red-900'
+                                : msg.type === 'join'
+                                ? 'bg-gradient-to-br from-green-100 to-green-200 border-green-500 text-green-800'
+                                : msg.type === 'close' 
+                                ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 border-yellow-600 text-yellow-900'
+                                : msg.type === 'correctGuessersChat'
+                                ? 'bg-gradient-to-br from-gray-200 to-gray-300 border-gray-500 text-gray-800'
+                                : msg.type === 'over'
+                                ? 'bg-gradient-to-br from-pink-200 to-pink-300 border-pink-600 text-pink-900'
+                                : msg.type === 'draw'
+                                ? 'bg-gradient-to-br from-blue-200 to-blue-300 border-blue-600 text-blue-900'
+                                : msg.type === 'correctAnswer'
+                                ? 'bg-gradient-to-br from-green-300 to-green-400 border-green-700 text-green-950'
+                                : msg.type === 'winner'
+                                ? 'bg-gradient-to-br from-orange-200 to-orange-300 border-orange-600 text-orange-900'
                                 : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300 text-gray-800'
                         }`}
                     >
