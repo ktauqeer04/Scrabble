@@ -577,7 +577,7 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
                   <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 mb-2">
                     GAME OVER!
                   </h2>
-                  <p className="text-gray-600 font-bold text-xl">Champions of the Canvas</p>
+                  <p className="text-gray-600 font-bold text-xl">Champions of the Game</p>
                 </div>
 
                 <div className="flex items-end justify-center gap-4 mb-8">
