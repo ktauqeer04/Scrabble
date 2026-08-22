@@ -560,6 +560,83 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
               </div>
             </div>
           )}
+
+          {snapshot?.gamestate === 'ended' && snapshot?.scoreBoards && (
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-pink-900/90 to-yellow-900/90 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn overflow-hidden">
+              {/* Floating confetti decorations */}
+              <div className="absolute top-10 left-10 text-6xl animate-confettiFloat" style={{ animationDelay: '0s' }}>🎉</div>
+              <div className="absolute top-20 right-16 text-5xl animate-confettiFloat" style={{ animationDelay: '0.3s' }}>✨</div>
+              <div className="absolute bottom-32 left-20 text-5xl animate-confettiFloat" style={{ animationDelay: '0.6s' }}>🎊</div>
+              <div className="absolute bottom-20 right-24 text-6xl animate-confettiFloat" style={{ animationDelay: '0.9s' }}>⭐</div>
+              <div className="absolute top-1/3 left-1/4 text-4xl animate-confettiFloat" style={{ animationDelay: '1.2s' }}>🎈</div>
+              <div className="absolute top-1/2 right-1/4 text-4xl animate-confettiFloat" style={{ animationDelay: '1.5s' }}>🎆</div>
+
+              <div className="bg-white rounded-3xl border-8 border-yellow-500 shadow-2xl p-8 max-w-3xl w-full mx-4 relative">
+                <div className="text-center mb-8">
+                  <div className="text-7xl mb-4 animate-trophy-glow">🏆</div>
+                  <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 mb-2">
+                    GAME OVER!
+                  </h2>
+                  <p className="text-gray-600 font-bold text-xl">Champions of the Canvas</p>
+                </div>
+
+                <div className="flex items-end justify-center gap-4 mb-8">
+                  {(() => {
+                    const sortedPlayers = Object.entries(snapshot.scoreBoards).sort((a, b) => b[1] - a[1]);
+                    const top3 = sortedPlayers.slice(0, 3);
+                    
+                    // Reorder: [2nd, 1st, 3rd] for visual podium effect
+                    const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : 
+                                        top3.length === 2 ? [null, top3[0], top3[1]] : 
+                                        top3.length === 1 ? [null, top3[0], null] : [];
+                    
+                    return podiumOrder.map((player, visualIndex) => {
+                      if (!player) return <div key={visualIndex} className="w-32" />;
+                      
+                      const [playerName, score] = player;
+                      // Actual rank: center=1st, left=2nd, right=3rd
+                      const actualRank = visualIndex === 1 ? 1 : visualIndex === 0 ? 2 : 3;
+                      const heights = { 1: 'h-56', 2: 'h-44', 3: 'h-36' };
+                      const bgColors = { 1: 'from-yellow-400 to-yellow-500', 2: 'from-orange-400 to-orange-500', 3: 'from-gray-300 to-gray-400' };
+                      const borderColors = { 1: 'border-yellow-600', 2: 'border-gray-500', 3: 'border-orange-600' };
+                      const medals = { 1: '👑', 2: '🥈', 3: '🥉' };
+                      const textSizes = { 1: 'text-2xl', 2: 'text-xl', 3: 'text-lg' };
+                      const medalSizes = { 1: 'text-6xl', 2: 'text-5xl', 3: 'text-4xl' };
+
+                      return (
+                        <div 
+                          key={playerName} 
+                          className="flex flex-col items-center animate-podiumRise"
+                          style={{ animationDelay: `${visualIndex * 0.2}s` }}
+                        >
+                          <div className={`${actualRank === 1 ? 'animate-crownBounce' : ''} ${medalSizes[actualRank]} mb-2`}>
+                            {medals[actualRank]}
+                          </div>
+                          <div className="text-center mb-2 px-2">
+                            <p className={`font-black text-gray-800 ${textSizes[actualRank]} truncate max-w-[120px]`}>
+                              {playerName}
+                            </p>
+                            <p className="text-gray-600 font-bold text-sm">
+                              {score} pts
+                            </p>
+                          </div>
+                          <div className={`${heights[actualRank]} w-32 bg-gradient-to-t ${bgColors[actualRank]} border-4 ${borderColors[actualRank]} rounded-t-2xl shadow-lg flex items-center justify-center`}>
+                            <span className="text-white font-black text-4xl drop-shadow-lg">
+                              {actualRank}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+                <div className="text-center text-gray-500 font-bold">
+                  Thanks for playing! 🎨
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

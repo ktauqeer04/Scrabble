@@ -426,7 +426,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 this.server.to(data.room).emit('updateCanvas');
 
             },
-            () => {
+            () => { 
 
                 this.server.to(data.room).emit('receiveRoundOverMessage', `Round Over, the word was ${game.currentWord}`);
 
