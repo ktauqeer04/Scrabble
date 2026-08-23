@@ -138,9 +138,14 @@ function Playground({ socket, username }) {
                 <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
                     {/* Players Panel */}
                     <div className="flex-1 bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4 flex flex-col min-h-0">
-                        <h3 className="text-xl font-black text-purple-900 mb-3 text-center flex items-center justify-center gap-2">
-                            <span className="text-2xl">👥</span> Players
-                        </h3>
+                        <div className="flex justify-between items-center mb-3 px-4">
+                            <h3 className="text-xl font-black text-purple-900 flex items-center gap-2">
+                                <span className="text-2xl">👥</span> Players
+                            </h3>
+                            <h3 className="text-xl font-black text-purple-900">
+                                Score
+                            </h3>
+                        </div>
                         <ul className="space-y-2 overflow-y-auto flex-1">
                             {playerNames.map((name) => (
                                 <li

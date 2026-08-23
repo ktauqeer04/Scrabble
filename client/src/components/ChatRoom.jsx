@@ -41,6 +41,7 @@ const ChatRoom = ({socket, roomCode, username}) => {
     useEffect(() => {
         socket.on("playerLeft", (message) => {
             try {
+                
                 setChatMessages((prev) => [...prev, { text: message, type: 'left' }])                
             } catch (error) {
                 throw new Error("Error updating playerLeft messages: " + error.message);

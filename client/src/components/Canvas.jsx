@@ -4,7 +4,7 @@ import "../styles/Canvas.css";
 
 const COLORS = ["#f8f8f2", "#ff6188", "#fc9867", "#ffd866", "#a9dc76", "#78dce8", "#ab9df2", "#1a1a2e"];
 const BRUSH_SIZES = [2, 6, 12, 24];
-const FILL_TOLERANCE = 32; // color-match tolerance for flood fill
+const FILL_TOLERANCE = 32; 
 
 
 export default function Canvas({socket, roomCode, username, snapshot}) {
@@ -175,8 +175,6 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
       ctx.stroke();
     });
   }, [floodFillAt]);
-
-  // ---------- Undo (server-authoritative) ----------
 
   const handleUndo = useCallback(() => {
     if (myActionCount.current <= 0) return;
@@ -585,7 +583,6 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
                     const sortedPlayers = Object.entries(snapshot.scoreBoards).sort((a, b) => b[1] - a[1]);
                     const top3 = sortedPlayers.slice(0, 3);
                     
-                    // Reorder: [2nd, 1st, 3rd] for visual podium effect
                     const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : 
                                         top3.length === 2 ? [null, top3[0], top3[1]] : 
                                         top3.length === 1 ? [null, top3[0], null] : [];
@@ -594,7 +591,6 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
                       if (!player) return <div key={visualIndex} className="w-32" />;
                       
                       const [playerName, score] = player;
-                      // Actual rank: center=1st, left=2nd, right=3rd
                       const actualRank = visualIndex === 1 ? 1 : visualIndex === 0 ? 2 : 3;
                       const heights = { 1: 'h-56', 2: 'h-44', 3: 'h-36' };
                       const bgColors = { 1: 'from-yellow-400 to-yellow-500', 2: 'from-orange-400 to-orange-500', 3: 'from-gray-300 to-gray-400' };
