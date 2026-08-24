@@ -51,6 +51,7 @@ Important server notes:
 - `components/Playground.jsx` — main screen: canvas, player list with scores, chat, lobby overlay (host-only settings + Start button). All UI driven by `game-snapshot` state.
 - `components/Canvas.jsx` — drawing canvas (pen/eraser, colors, brush sizes), word-selection popup for the drawer, networked stroke replay. Coordinates are normalized (÷ canvas width/height) on emit and denormalized on receive.
 - `components/ChatRoom.jsx` — chat with special styling for close guesses, correct-guess-only messages, round-over/drawing announcements.
+- `public/sounds/` — audio files for game sound effects. Sounds are played client-side in response to game events and UI interactions.
 
 ## UI/UX Patterns
 

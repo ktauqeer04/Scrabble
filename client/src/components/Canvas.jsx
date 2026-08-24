@@ -28,6 +28,37 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
   // Check if current user is allowed to draw
   const canDraw = snapshot?.gamestate === 'player_guessing' && snapshot?.chooser?.drawer === username;
 
+  // Handle game state change sounds
+  useEffect(() => {
+    if (!snapshot?.gamestate) return;
+
+    // Only play sounds if there was a previous state (not on initial mount)
+    if (prevGameState !== null && prevGameState !== snapshot.gamestate) {
+      // Play round-start sound when entering player_guessing
+      if (snapshot.gamestate === 'player_guessing') {
+        console.log("round-start.mp3 playing");
+        const audio = new Audio('/sounds/round-start.mp3');
+        audio.play().catch(err => console.log('Audio play failed:', err));
+      }
+
+      // Play round-over sound when entering hidden_word
+      if (snapshot.gamestate === 'hidden_word') {
+        console.log("round-over.mp3 playing");
+        const audio = new Audio('/sounds/round-over.mp3');
+        audio.play().catch(err => console.log('Audio play failed:', err));
+      }
+
+      // Play end-game sound when entering ended
+      if (snapshot.gamestate === 'ended') {
+        console.log("end-game.wav playing");
+        const audio = new Audio('/sounds/end-game.wav');
+        audio.play().catch(err => console.log('Audio play failed:', err));
+      }
+    }
+
+    setPrevGameState(snapshot.gamestate);
+  }, [snapshot?.gamestate, prevGameState]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -354,8 +385,6 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
     } else if (snapshot?.gamestate === 'player_choosing' && snapshot?.chooser?.drawer !== username) {
       setIsWaitingOverlayVisible(true);
     }
-    
-    setPrevGameState(snapshot?.gamestate);
   }, [snapshot?.gamestate, snapshot?.chooser?.drawer, username, prevGameState]);
 
   useEffect(() => {
@@ -382,12 +411,22 @@ export default function Canvas({socket, roomCode, username, snapshot}) {
     const initialSeconds = snapshot.timeLeft;
     setTimeLeft(initialSeconds);
 
+    let tenSecondSoundPlayed = false;
+
     const interval = setInterval(() => {
         setTimeLeft((prev) => {
             if (prev <= 1) {
                 clearInterval(interval);
                 return 0;
             }
+            
+            // Play ten-seconds sound at 10 second mark during player_guessing
+            if (prev === 11 && snapshot?.gamestate === 'player_guessing' && !tenSecondSoundPlayed) {
+                const audio = new Audio('/sounds/ten-seconds.mp3');
+                audio.play().catch(err => console.log('Audio play failed:', err));
+                tenSecondSoundPlayed = true;
+            }
+            
             return prev - 1;
         });
     }, 1000);

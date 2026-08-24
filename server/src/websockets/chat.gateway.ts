@@ -258,7 +258,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             game.checkGuess(data.message, data.username, 
                 () => {
-                    data.message = `${data.username} has guessed the word`;
+                    // data.message = `${data.username} has guessed the word`;
                     this.server.to(data.room).emit('correctAnswer', `${data.username} has guessed the word`)
                     
                 },

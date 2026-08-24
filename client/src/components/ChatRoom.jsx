@@ -11,6 +11,10 @@ const ChatRoom = ({socket, roomCode, username}) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!message.trim()) return;
+        
+        const audio = new Audio('/sounds/button-click.mp3');
+        audio.play().catch(err => console.log('Audio play failed:', err));
+        
         console.log("chatMessage event provoked");
         socket.emit("chatMessage", { room: roomCode, message: message, username: username });
         console.log("chatMessage event emitted");
@@ -41,6 +45,8 @@ const ChatRoom = ({socket, roomCode, username}) => {
     useEffect(() => {
         socket.on("playerLeft", (message) => {
             try {
+                const audio = new Audio('/sounds/left-room.mp3');
+                audio.play().catch(err => console.log('Audio play failed:', err));
                 
                 setChatMessages((prev) => [...prev, { text: message, type: 'left' }])                
             } catch (error) {
@@ -55,6 +61,9 @@ const ChatRoom = ({socket, roomCode, username}) => {
     useEffect(() => {
         socket.on("joinRoom", (message) => {
             try {
+                const audio = new Audio('/sounds/join-room.wav');
+                audio.play().catch(err => console.log('Audio play failed:', err));
+                
                 setChatMessages((prev) => [...prev, { text: message, type: 'join' }])                
             } catch (error) {
                 throw new Error("Error updating joinRoom messages: " + error.message);
@@ -118,6 +127,9 @@ const ChatRoom = ({socket, roomCode, username}) => {
     useEffect(() => {
         socket.on("correctAnswer", (message) => {
             try {
+                const audio = new Audio('/sounds/correct-answer.mp3');
+                audio.play().catch(err => console.log('Audio play failed:', err));
+                
                 setChatMessages((prev) => [...prev, { text: message, type: 'correctAnswer' }]);
             } catch (error) {
                 throw new Error("Error updating correctAnswer messages: " + error.message);
