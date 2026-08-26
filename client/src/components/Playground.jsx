@@ -137,16 +137,18 @@ function Playground({ socket, username }) {
                 {/* Players & Chat Container */}
                 <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
                     {/* Players Panel */}
-                    <div className="flex-1 bg-white rounded-2xl border-4 border-purple-600 shadow-xl p-4 flex flex-col min-h-0">
-                        <div className="flex justify-between items-center mb-3 px-4">
-                            <h3 className="text-xl font-black text-purple-900 flex items-center gap-2">
-                                <span className="text-2xl">👥</span> Players
-                            </h3>
-                            <h3 className="text-xl font-black text-purple-900">
-                                Score
-                            </h3>
+                    <div className="flex-1 bg-white rounded-2xl border-4 border-purple-600 shadow-xl flex flex-col min-h-0 overflow-hidden">
+                        <div className="bg-gradient-to-br from-purple-100 to-pink-100 border-b-4 border-purple-600 p-3">
+                            <div className="flex justify-between items-center px-4">
+                                <h3 className="text-lg font-black text-purple-900 flex items-center gap-2">
+                                    <span className="text-xl">👥</span> Players
+                                </h3>
+                                <h3 className="text-lg font-black text-purple-900">
+                                    Score
+                                </h3>
+                            </div>
                         </div>
-                        <ul className="space-y-2 overflow-y-auto flex-1">
+                        <ul className="space-y-2 overflow-y-auto flex-1 px-4 py-3">
                             {playerNames.map((name) => (
                                 <li
                                     key={name}

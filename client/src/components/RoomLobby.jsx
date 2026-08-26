@@ -44,7 +44,7 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
   // console.log(socket);
 
 
-  const canProceed = username.trim().length > 0 && selectedChar !== null;
+  const canProceed = username.trim().length > 0;
 
   const showToast = (msg) => {
     setToast(msg);
@@ -125,7 +125,7 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
 
           {/* Scrabble Title */}
           <div className="flex justify-center gap-2 mb-4 flex-wrap">
-            {"SCRIBBLE".split("").map((letter, i) => (
+            {"SCRABBLE".split("").map((letter, i) => (
               <div 
                 key={i}
                 className="relative bg-gradient-to-br from-yellow-200 to-yellow-400 rounded-lg shadow-lg w-12 h-12 flex items-center justify-center transform hover:rotate-12 hover:scale-110 transition-all duration-200 border-2 border-yellow-600"
@@ -139,58 +139,16 @@ export default function RoomLobby({ socket, roomCode, setRoomCode, username, set
 
           {/* Username Input */}
           <p className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
-            <span className="text-2xl">🏷️</span> Your Name
+            <span className="text-2xl">🏷️</span> Create an In-Game Name
           </p>
           <input
-            className="w-full px-4 py-3 text-lg border-4 border-purple-300 rounded-2xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 outline-none transition-all duration-200 font-semibold text-gray-800 placeholder-gray-400 shadow-md"
+            className="w-full px-4 py-3 text-lg border-4 border-purple-300 rounded-2xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 outline-none transition-all duration-200 font-semibold text-gray-800 placeholder-gray-400 shadow-md mb-2"
             type="text"
             placeholder="Enter your username…"
             value={username}
             onChange={e => setUsername(e.target.value)}
             maxLength={20}
           />
-
-          {/* Character Selection */}
-          <p className="text-lg font-bold text-gray-700 mb-3 mt-6 flex items-center gap-2">
-            <span className="text-2xl">🎭</span> Pick Your Character
-          </p>
-          <div className="grid grid-cols-4 gap-3 mb-4">
-            {characters.map(c => (
-              <button
-                key={c.id}
-                className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border-4 transition-all duration-200 transform hover:scale-105 hover:-rotate-2 ${
-                  selectedChar === c.id 
-                    ? 'border-green-500 bg-gradient-to-br from-green-100 to-green-200 shadow-xl scale-105' 
-                    : 'border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 hover:border-purple-400 shadow-md'
-                }`}
-                onClick={() => setSelectedChar(c.id)}
-                title={c.name}
-              >
-                {selectedChar === c.id && (
-                  <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-xl font-bold shadow-lg animate-bounce">
-                    ✓
-                  </div>
-                )}
-                <img
-                  src={c.img}
-                  alt={c.name}
-                  className="w-16 h-16 object-cover rounded-xl mb-2"
-                  onError={e => { e.currentTarget.src = DEFAULT_FALLBACK; }}
-                />
-                <span className="text-sm font-bold text-gray-700">{c.name}</span>
-              </button>
-            ))}
-          </div>
-
-          <p className={`text-center text-sm font-semibold py-2 px-4 rounded-xl transition-all duration-300 ${
-            selected 
-              ? 'text-green-600 bg-green-100 border-2 border-green-400' 
-              : 'text-gray-400 bg-gray-50 border-2 border-gray-200'
-          }`}>
-            {selected ? `✅ ${selected.name} selected!` : "No character chosen yet"}
-          </p>
-
-          <hr className="my-6 border-t-4 border-purple-200 rounded-full" />
 
           {/* Create Room */}
           <p className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
