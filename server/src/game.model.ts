@@ -23,6 +23,7 @@ export default class Game {
     guessTimer: NodeJS.Timeout | undefined;
     revealWordTimer: NodeJS.Timeout | undefined;
     endGameTimer: NodeJS.Timeout | undefined;
+    waitingTimer: NodeJS.Timeout | undefined;
     round: number;
     gameState: GameState;
     correctGuesses: Map<string,boolean>;
@@ -36,6 +37,7 @@ export default class Game {
     guessingTime: number;
     revealWordTime: number;
     endGameTime: number;
+    waitingTime: number;
     // userIsDrawing: (() => void) | null;
     // displayWord: (() => void) | null;
     timerScoreCard: ScoreEntry[] = [];
@@ -63,6 +65,7 @@ export default class Game {
         this.guessTimer = undefined;
         this.revealWordTimer = undefined;
         this.endGameTimer = undefined;
+        this.waitingTimer = undefined;
         this.round = 1;
         this.gameState = GameState.WAITING;
         this.correctGuesses = new Map();
@@ -73,6 +76,7 @@ export default class Game {
         this.choosingTime = 20000;
         this.revealWordTime = 3000;
         this.endGameTime = 6000;
+        this.waitingTime = 300000;
         this.timerStartedAt = 0;
         this.timerDuration = 0;
         // this.userIsDrawing = null
@@ -84,6 +88,28 @@ export default class Game {
 
         this.winnerStack = [];
     }
+
+
+    waitingTimerStart(onCompleteTime: () => void) {
+
+        if(this.waitingTimer){
+            clearTimeout(this.waitingTimer);
+        }
+
+        console.log('this has started 1')
+        
+        this.waitingTimer = setTimeout(() => {
+            onCompleteTime();
+        }, this.waitingTime);
+
+        console.log('this has started 2')
+    }
+
+    waitingTimerBreak(){
+        clearTimeout(this.waitingTimer);
+
+        console.log("waiting timer is ", this.waitingTimer);
+    } 
 
 
     startGame() {
@@ -487,8 +513,9 @@ export default class Game {
             })
 
             updateSnapshot();
+            this.waitingTimerBreak();
 
-            console.log('this works');
+            // console.log('this works');
 
         }, this.endGameTime);
 

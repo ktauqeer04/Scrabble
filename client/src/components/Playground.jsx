@@ -12,9 +12,10 @@ function Playground({ socket, username }) {
     const [maxPlayers, setMaxPlayers] = useState(4);
     const [drawTimer, setDrawTimer] = useState(60);
     const [maxRounds, setMaxRounds] = useState(3);
-    const [gameMode, setGameMode] = useState('medium'); // 'easy' | 'medium' | 'hard'
+    const [gameMode, setGameMode] = useState('medium');
     const [maxNoOfPlayersMessage, setMaxNoOfPlayersMessage] = useState("");
     const [cannotStartGameError, setCannotStartGameError] = useState("");
+    
 
     const playerNames = Object.keys(snapshot.scoreBoards ?? {});
 
@@ -38,6 +39,30 @@ function Playground({ socket, username }) {
 
         return () => socket.off('game-snapshot', handleSnapshot);
     }, [socket, roomCode]); 
+
+
+    useEffect(() => {
+
+        if(snapshot?.gamestate == "waiting"){
+            console.log("works works worksssss");
+            socket.emit("start-countdown", { room: roomCode });
+        };
+
+        return () => socket.off("start-countdown");
+
+    }, [snapshot?.gamestate, socket]);
+
+    useEffect(() => {
+
+        socket.on("timeout", () => {
+            navigate('/');
+        });
+
+        return () => {
+            socket.off("timeout");
+        };
+
+    }, [socket, snapshot?.gamestate])
 
 
     useEffect(() => {

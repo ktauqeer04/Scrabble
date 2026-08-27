@@ -343,6 +343,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
 
+        if(game.gameState == GameState.WAITING) {
+            game.waitingTimerStart(() => {
+                this.server.to(data.room).emit("timeout");
+                this.server.in(data.room).disconnectSockets(true);
+            });
+        }
+
         if(game?.gameState == GameState.PLAYER_GUESSING){
             // console.log(game.canvasSnapshot);
             client.emit("replayDrawing", game.canvasSnapshot);
@@ -372,6 +379,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             client.emit('cannot-start-game', false);
             return;
         }
+
+        game.waitingTimerBreak();
 
         game?.roundStart(() => {
 
@@ -512,9 +521,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket
     ){
 
-        const game = this.roomsWithGame.get(data.room);
+        const game = this.roomsWithGame.get(data.room) as Game;
 
-        if(game?.gameState != GameState.WAITING){
+        if(game.gameState != GameState.WAITING){
             return;
         }
 
@@ -528,4 +537,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         game?.setGameSettings(data.maxNoOfPlayers, data.drawTimer, data.maxRounds, data.gameMode);
 
     }
+
+    @SubscribeMessage('start-countdown')
+    handleStartCountdown(
+        @MessageBody() data: {
+            room: string,
+        },
+        @ConnectedSocket() client: Socket
+    ){
+
+        const game = this.roomsWithGame.get(data.room)  as Game;
+
+        if(game.gameState != GameState.WAITING){
+            return;
+        }
+
+        game.waitingTimerStart(() => {
+            this.server.to(data.room).emit("timeout");
+            this.server.in(data.room).disconnectSockets(true);
+        })
+
+    }
+
+
 }
