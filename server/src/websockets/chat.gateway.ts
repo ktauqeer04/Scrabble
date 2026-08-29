@@ -12,6 +12,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private usernameWithClientId: Map<string, string> = new Map();
     private clientWithRoom: Map<string,string> = new Map();
     //let rooms: 
+    onModuleInit() {
+
+    }
 
     // problem: handleDisconnect can only send clientId to the server, not the room
     handleDisconnect(client: Socket) {

@@ -7,3 +7,8 @@ Each correct guess earns points for the guesser. After 3 rounds of drawing and g
 I developed this game independently as a solo project. I got interests in multiplayer game development.
 
 The game is built using WebSocket connections for real-time communication between players. It implements a state machine architecture where the game starts in START state and then WAITING -> CHOOSING -> GUESSING -> HIDDEN WORD -> CHOOSING -> GUESSING -> HIDDEN WORD till all the rounds given by the creator of the room ends, ending with the END state.
+
+
+Design Doc Link -> 
+
+https://docs.google.com/document/d/e/2PACX-1vSZbcp7qO29QDEEB4DP9EBbKTp_CwjaZBN1Lf8nY_Vkuhn3PUaYuzfblMBUCksPrLPNRYBqd1L6YIJo/pub
