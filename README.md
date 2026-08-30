@@ -1,8 +1,8 @@
-# Scribble
+# Scrabble
 
-Scribble is a multiplayer drawing and guessing game where one player takes on the role of the artist while others attempt to guess the word being illustrated. Players compete to correctly identify what the drawer is creating on the canvas.
+Scrabble is a multiplayer drawing and guessing game where one player takes on the role of the artist while others attempt to guess the word being illustrated. Players compete to correctly identify what the drawer is creating on the canvas.
 
-Each correct guess earns points for the guesser. After 3 rounds of drawing and guessing, the game concludes and the top 3 players with the highest scores are declared the winners.
+Each correct guess earns points for the guesser. After 3 (less or more) rounds of drawing and guessing, the game concludes and the top 3 players with the highest scores are declared the winners.
 
 I developed this game independently as a solo project. I got interests in multiplayer game development.
 
