@@ -9,6 +9,18 @@ I developed this game independently as a solo project. I got interests in multip
 The game is built using WebSocket connections for real-time communication between players. It implements a state machine architecture where the game starts in START state and then WAITING -> CHOOSING -> GUESSING -> HIDDEN WORD -> CHOOSING -> GUESSING -> HIDDEN WORD till all the rounds given by the creator of the room ends, ending with the END state.
 
 
+There are two main branches in this repository: 
+1. main
+2. pubsub
+
+The First one is a straight forward Game Application, nothing interesting here, you can straight up clone the repo and play, beware!! you need at least 2 people for a game to start. 
+
+The second one is interesting, it is a proposed solution for my Game, if I (Hypothetically) gain hundreds of thousands of players overnight (which is never gonna happen).
+How would I make my Game scalable? How would I design the architecture? how would I address some problems? 
+
+all of that is given in the following design doc, be sure to read it ;)
+
+
 Design Doc Link -> 
 
 https://docs.google.com/document/d/e/2PACX-1vSZbcp7qO29QDEEB4DP9EBbKTp_CwjaZBN1Lf8nY_Vkuhn3PUaYuzfblMBUCksPrLPNRYBqd1L6YIJo/pub
