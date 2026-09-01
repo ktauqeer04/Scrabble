@@ -1,3 +1,5 @@
+import { Inject, Logger } from "@nestjs/common";
+import { ClientProxy } from "@nestjs/microservices";
 import { ConnectedSocket, MessageBody, SubscribeMessage,OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { GameMode, GameState } from "src/enums";
@@ -7,12 +9,26 @@ import Game from "src/game.model";
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server!: Server;
+    private logger: Logger = new Logger('ChatGateway');
 
     private roomsWithGame: Map<string, Game> = new Map();
     private usernameWithClientId: Map<string, string> = new Map();
     private clientWithRoom: Map<string,string> = new Map();
-    //let rooms: 
-    onModuleInit() {
+
+
+    constructor(@Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy) {}
+
+     
+    async onModuleInit() {
+
+        try{
+
+            await this.redisClient.connect();
+            this.logger.log('Successfully connected to Redis container');
+
+        }catch (error) {
+            this.logger.error('Failed to connect to Redis Container', error);
+        }
 
     }
 
