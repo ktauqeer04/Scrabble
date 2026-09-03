@@ -34,6 +34,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
             this.logger.log('Successfully connected to Redis container');
 
+            await this.redisSub.subscribe('inbox:Instance-2', (raw) => {
+
+                const { event, data, socketId } = JSON.parse(raw);
+
+                if(event == 'createRoom') console.log("THIS SHIT ACTUALLY WORKSSSS");
+                if(event == 'joinRoom') console.log("JOIN ROOM WORKS ON INSTANCE 2");
+
+            })
+
+
         }catch (error) {
             this.logger.error('Failed to connect to Redis Container', error);
         }
@@ -147,16 +157,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         const game = this.roomsWithGame.get(data.room);
 
-        if(game?.gameState != GameState.PLAYER_GUESSING) return;
-        if(data.username != game.drawer) return;
+        if(game){
 
-        // payload now carries a strokeId (see client changes) so segments
-        // belonging to one stroke can be undone together
-        game.canvasSnapshot.push(data.payload);
+            if(game?.gameState != GameState.PLAYER_GUESSING) return;
+            if(data.username != game.drawer) return;
 
-        client.to(data.room).emit('updateDrawing', data.payload)
-        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
-        this.broadcastPersonalizedSnapshot(data.room, game);
+            // payload now carries a strokeId (see client changes) so segments
+            // belonging to one stroke can be undone together
+            game.canvasSnapshot.push(data.payload);
+
+            client.to(data.room).emit('updateDrawing', data.payload)
+            // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
+            this.broadcastPersonalizedSnapshot(data.room, game);
+
+        }
+
     }
 
     @SubscribeMessage('bucketFill')
@@ -308,7 +323,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         }
 
         console.log("last event ")
-
         // client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
     }
@@ -317,7 +331,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     // user that creates this room is the first person to join the room 
     @SubscribeMessage('createRoom')
-    handleEventCreateRoom(
+    async handleEventCreateRoom(
         @MessageBody() data: {
             room: string,
             username: string
@@ -335,11 +349,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.broadcastPersonalizedSnapshot(data.room, game);
+
+        await this.redis.set(`owner:${data.room}`, 'Instance-1');
+
+        // await this.redisPub.publish(`inbox:instance-1`, JSON.stringify({
+        //     event: 'createRoom',
+        //     data: data,
+        //     socketId: client.id
+        // }));
+
+        console.log('redis event sent');
+        
     }
 
     // user joining the room are second onwards
     @SubscribeMessage('joinRoom')
-    handleEventJoinRoom(
+    async handleEventJoinRoom(
         @MessageBody() data: {
             room: string, 
             username: string
@@ -347,44 +372,59 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         @ConnectedSocket() client: Socket
     ) {
 
-        if (!this.roomsWithGame.has(data.room)) {
+        if (this.roomsWithGame.has(data.room)) {
+            const game = this.roomsWithGame.get(data.room) as Game;
+
+
+            const addplayer = game?.addPlayer(data.username);
+
+
+            if (addplayer?.success == false) {
+                client.emit('cannot-join-game', addplayer.message); // emit to client, not room
+                return;
+            }
+
+            this.usernameWithClientId.set(data.username, client.id);
+            this.clientWithRoom.set(client.id, data.room);
+
+            client.join(data.room); 
+
+            client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
+
+            if(game.gameState == GameState.WAITING) {
+                game.waitingTimerStart(() => {
+                    this.server.to(data.room).emit("timeout");
+                    this.server.in(data.room).disconnectSockets(true);
+                });
+            }
+
+            if(game?.gameState == GameState.PLAYER_GUESSING){
+                // console.log(game.canvasSnapshot);
+                client.emit("replayDrawing", game.canvasSnapshot);
+            }
+
+            this.server.to(data.room).emit("joinRoom", `${data.username} has join the room`);
+            // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
+            this.broadcastPersonalizedSnapshot(data.room, game);
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId){
             client.emit('roomNotExists', { message: 'Room does not exist', flag: false });
             return;
         }
 
-        const game = this.roomsWithGame.get(data.room) as Game;
+        console.log(ownerId);
 
+        client.join(data.room);
+        
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event:'joinRoom',
+            data: data,
+            socketId: client.id
+        }))
 
-        const addplayer = game?.addPlayer(data.username);
-
-
-        if (addplayer?.success == false) {
-            client.emit('cannot-join-game', addplayer.message); // emit to client, not room
-            return;
-        }
-
-        this.usernameWithClientId.set(data.username, client.id);
-        this.clientWithRoom.set(client.id, data.room);
-
-        client.join(data.room); 
-
-        client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
-
-        if(game.gameState == GameState.WAITING) {
-            game.waitingTimerStart(() => {
-                this.server.to(data.room).emit("timeout");
-                this.server.in(data.room).disconnectSockets(true);
-            });
-        }
-
-        if(game?.gameState == GameState.PLAYER_GUESSING){
-            // console.log(game.canvasSnapshot);
-            client.emit("replayDrawing", game.canvasSnapshot);
-        }
-
-        this.server.to(data.room).emit("joinRoom", `${data.username} has join the room`);
-        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
-        this.broadcastPersonalizedSnapshot(data.room, game);
 
     }
 
