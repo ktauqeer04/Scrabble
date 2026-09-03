@@ -1,12 +1,13 @@
-import { Inject, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConnectedSocket, MessageBody, SubscribeMessage,OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import { createClient, RedisClient, RedisClientType } from "redis";
+import type { RedisClientType } from "redis";
 import { Server, Socket } from "socket.io";
 import { GameMode, GameState } from "src/enums";
 import Game from "src/game.model";
 
+@Injectable()
 @WebSocketGateway({ cors: true })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
     @WebSocketServer()
     server!: Server;
     private logger: Logger = new Logger('ChatGateway');
@@ -15,21 +16,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private usernameWithClientId: Map<string, string> = new Map();
     private clientWithRoom: Map<string,string> = new Map();
 
-    private redis: RedisClientType = createClient();
-    private redisPub: RedisClientType = createClient();
-    private redisSub: RedisClientType = createClient();
 
-
-    constructor(@Inject('REDIS_CLIENT') private readonly ) {}
+    constructor(
+        @Inject('REDIS_CLIENT') private readonly redis: RedisClientType,
+        @Inject('REDIS_PUB') private readonly redisPub: RedisClientType,
+        @Inject('REDIS_SUB') private readonly redisSub: RedisClientType,
+    ) {}
 
      
     async onModuleInit() {
 
         try{
 
-            await this.redis.connect();
-            await this.redisPub.connect();
-            await this.redisSub.connect();
+            if (!this.redis.isOpen) await this.redis.connect();
+            if (!this.redisPub.isOpen) await this.redisPub.connect();
+            if (!this.redisSub.isOpen) await this.redisSub.connect();
+
             this.logger.log('Successfully connected to Redis container');
 
         }catch (error) {
