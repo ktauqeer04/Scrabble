@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { WebsocketsModule } from './websockets/websockets.module';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule } from '@nestjs/config';
+
 
 @Module({
   imports: [
-    WebsocketsModule
+    WebsocketsModule,
+    ConfigModule.forRoot()
   ],
   controllers: [],
   providers: [],

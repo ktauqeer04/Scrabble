@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import { ConnectedSocket, MessageBody, SubscribeMessage,OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { ConnectedSocket, MessageBody, SubscribeMessage,OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer, OnGatewayInit } from "@nestjs/websockets";
+import { createAdapter } from "@socket.io/redis-adapter";
 import type { RedisClientType } from "redis";
 import { Server, Socket } from "socket.io";
 import { GameMode, GameState } from "src/enums";
@@ -21,7 +22,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         @Inject('REDIS_CLIENT') private readonly redis: RedisClientType,
         @Inject('REDIS_PUB') private readonly redisPub: RedisClientType,
         @Inject('REDIS_SUB') private readonly redisSub: RedisClientType,
+        @Inject('REDIS_ADAPTER_PUB') private readonly adapterPub: RedisClientType,
+        @Inject('REDIS_ADAPTER_PUB') private readonly adapterSub: RedisClientType
     ) {}
+
+    afterInit(){
+        this.server.adapter(createAdapter(this.adapterPub, this.adapterSub));
+        this.logger.log('Redis Adapter attached');
+        console.log(`[${process.env.INSTANCE_ID}] adapter attached`);
+
+    }
 
      
     async onModuleInit() {
@@ -31,15 +41,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             if (!this.redis.isOpen) await this.redis.connect();
             if (!this.redisPub.isOpen) await this.redisPub.connect();
             if (!this.redisSub.isOpen) await this.redisSub.connect();
+            if (!this.adapterPub.isOpen) await this.adapterPub.connect();
+            if (!this.adapterSub.isOpen) await this.adapterSub.connect();
 
             this.logger.log('Successfully connected to Redis container');
 
-            await this.redisSub.subscribe('inbox:Instance-1', (raw) => {
+            await this.redisSub.subscribe(`inbox:${process.env.INSTANCE_ID}`, (raw) => {
 
                 const { event, data, socketId } = JSON.parse(raw);
 
                 if(event == 'createRoom') console.log("THIS SHIT ACTUALLY WORKSSSS");
-                if(event == 'joinRoom') console.log("JOIN ROOM WORKS ON INSTANCE 1");
+                if(event == 'joinRoom') this.joinRoomMethod(data, socketId);
 
             })
 
@@ -112,7 +124,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                 //game ends when all the players leave the room
                 if(game.players.length == 0){
 
-                    game.endGame(() => {}, () => {}); // nothing to execute since all the players have left, but need an argument
+                    game.endGame(() => {}, () => {}); // nothing to execute since all the players have left, but I need an argument here
 
                     this.roomsWithGame.delete(room);
 
@@ -136,16 +148,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         
     }
 
-    private broadcastPersonalizedSnapshot(room: string, game: Game) {
-        const socketsInRoom = this.server.sockets.adapter.rooms.get(room);
-        if (!socketsInRoom) return;
+    private async broadcastPersonalizedSnapshot(room: string, game: Game) {
+        const sockets = await this.server.in(room).fetchSockets();
 
-        socketsInRoom.forEach(socketId => {
+        for (const socket of sockets) {
             const username = [...this.usernameWithClientId.entries()]
-                .find(([_, id]) => id === socketId)?.[0];
+                .find(([_, id]) => id === socket.id)?.[0];
 
-            this.server.to(socketId).emit('game-snapshot', game.getSnapshot(username));
-        });
+            this.server.to(socket.id).emit('game-snapshot', game.getSnapshot(username));
+        }
     }
 
 
@@ -330,14 +341,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
 
     // user that creates this room is the first person to join the room 
-    @SubscribeMessage('createRoom')
-    async handleEventCreateRoom(
-        @MessageBody() data: {
-            room: string,
-            username: string
-        },
-        @ConnectedSocket() client: Socket,
-    ){
+
+    private createRoomMethod(data: {room: string, username: string }, client: Socket) {
+
         client.join(data.room);
         this.usernameWithClientId.set(data.username, client.id);
         this.clientWithRoom.set(client.id, data.room);
@@ -350,50 +356,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.broadcastPersonalizedSnapshot(data.room, game);
 
-        await this.redis.set(`owner:${data.room}`, 'Instance-1');
+    }
 
-        // await this.redisPub.publish(`inbox:instance-1`, JSON.stringify({
-        //     event: 'createRoom',
-        //     data: data,
-        //     socketId: client.id
-        // }));
+    @SubscribeMessage('createRoom')
+    async handleEventCreateRoom(
+        @MessageBody() data: {
+            room: string,
+            username: string
+        },
+        @ConnectedSocket() client: Socket,
+    ){
+
+        this.createRoomMethod(data, client);
+
+        await this.redis.set(`owner:${data.room}`, String(process.env.INSTANCE_ID));
 
         console.log('redis event sent');
         
     }
 
     // user joining the room are second onwards
-    @SubscribeMessage('joinRoom')
-    async handleEventJoinRoom(
-        @MessageBody() data: {
-            room: string, 
-            username: string
-        }, 
-        @ConnectedSocket() client: Socket
-    ) {
 
-        if (!this.roomsWithGame.has(data.room)) {
-            client.emit('roomNotExists', { message: 'Room does not exist', flag: false });
-            return;
-        }
+    private joinRoomMethod(data: { room: string, username: string }, clientId: string ) {
+
 
         const game = this.roomsWithGame.get(data.room) as Game;
 
-
         const addplayer = game?.addPlayer(data.username);
 
-
         if (addplayer?.success == false) {
-            client.emit('cannot-join-game', addplayer.message); // emit to client, not room
+            this.server.to(clientId).emit('cannot-join-game', addplayer.message); // emit to client, not room
             return;
         }
 
-        this.usernameWithClientId.set(data.username, client.id);
-        this.clientWithRoom.set(client.id, data.room);
+        this.usernameWithClientId.set(data.username, clientId);
+        this.clientWithRoom.set(clientId, data.room);
 
-        client.join(data.room); 
-
-        client.emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
+        this.server.to(clientId).emit('joinedRoom', { message: 'Joined Room Successfully', flag: true });
 
         if(game.gameState == GameState.WAITING) {
             game.waitingTimerStart(() => {
@@ -404,13 +403,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         if(game?.gameState == GameState.PLAYER_GUESSING){
             // console.log(game.canvasSnapshot);
-            client.emit("replayDrawing", game.canvasSnapshot);
+            this.server.to(clientId).emit("replayDrawing", game.canvasSnapshot);
         }
 
         this.server.to(data.room).emit("joinRoom", `${data.username} has join the room`);
         // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); 
         this.broadcastPersonalizedSnapshot(data.room, game);
+    }
 
+    @SubscribeMessage('joinRoom')
+    async handleEventJoinRoom(
+        @MessageBody() data: {
+            room: string, 
+            username: string
+        }, 
+        @ConnectedSocket() client: Socket
+    ) {
+
+        // joining room in the current instance 
+        // this is for people in the same node instance
+        if (this.roomsWithGame.has(data.room)) {
+
+            client.join(data.room);
+            this.joinRoomMethod(data, client.id);
+
+            return;
+        }
+
+
+        // not present in current instance, lets check-up the other instances. 
         const ownerId = await this.redis.get(`owner:${data.room}`);
 
         if(!ownerId){

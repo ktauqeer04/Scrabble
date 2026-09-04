@@ -24,5 +24,21 @@ export const redisProviders = [
             await client.connect();
             return client;
         }
+    },
+    {
+        provide: 'REDIS_ADAPTER_PUB',
+        useFactory: async () => {
+            const client = createClient();
+            await client.connect();
+            return client;
+        }
+    },
+    {
+        provide: 'REDIS_ADAPTER_SUB',
+        useFactory: async () => {
+            const client = createClient();
+            await client.connect();
+            return client;
+        }
     }
 ]
