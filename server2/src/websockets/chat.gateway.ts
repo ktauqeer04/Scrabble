@@ -52,7 +52,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
                 if(event == 'createRoom') console.log("THIS SHIT ACTUALLY WORKSSSS");
                 if(event == 'joinRoom') this.joinRoomMethod(data, socketId);
-
+                if(event == 'Start-Game') this.startGameMethod(data, socketId);
+                if(event == 'start-countdown') this.startCountDown(data);
             })
 
 
@@ -384,7 +385,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         const addplayer = game?.addPlayer(data.username);
 
-
         if (addplayer?.success == false) {
             this.server.to(clientId).emit('cannot-join-game', addplayer.message); // emit to client, not room
             return;
@@ -452,25 +452,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
 
 
-    @SubscribeMessage('Start-Game')
-    handleEventStartGame(
-        @MessageBody() data: {
+    private startGameMethod(
+        data: {
             room: string,
             maxPlayers: number, 
             drawTime: number, 
-            noOfRounds: number
+            noOfRounds: number 
         },
-        @ConnectedSocket() client: Socket,
+        socketId: string
     ){
-
         const game = this.roomsWithGame.get(data.room) as Game;
 
+        console.log("game state is :", game.gameState);
+
         if(game?.players.length == 1){
-            client.emit('cannot-start-game', false);
+            this.server.to(socketId).emit('cannot-start-game', false);
             return;
         }
+        
+        game.waitingTimerBreak(); // no longer just waiting, the game has started, so ditch the background timer kicks you out after over. 
 
-        game.waitingTimerBreak();
 
         game?.roundStart(() => {
 
@@ -540,6 +541,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot()); // first emit player choosing immediately
         this.broadcastPersonalizedSnapshot(data.room, game);
+
+    }
+
+    // the game just starts
+    @SubscribeMessage('Start-Game')
+    async handleEventStartGame(
+        @MessageBody() data: {
+            room: string,
+            maxPlayers: number, 
+            drawTime: number, 
+            noOfRounds: number
+        },
+        @ConnectedSocket() client: Socket,
+    ){
+
+        if(this.roomsWithGame.has(data.room)) {
+            this.startGameMethod(data, client.id);
+            return;
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId) return;
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'Start-Game',
+            data,
+            socketId: client.id
+        }))
 
     }
 
@@ -628,15 +658,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     }
 
-    @SubscribeMessage('start-countdown')
-    handleStartCountdown(
-        @MessageBody() data: {
-            room: string,
-        },
-        @ConnectedSocket() client: Socket
-    ){
 
-        const game = this.roomsWithGame.get(data.room)  as Game;
+    private startCountDown(
+        data: {
+            room: string
+        }
+    ){
+        const game = this.roomsWithGame.get(data.room) as Game;
 
         if(game.gameState != GameState.WAITING){
             return;
@@ -646,6 +674,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             this.server.to(data.room).emit("timeout");
             this.server.in(data.room).disconnectSockets(true);
         })
+        
+    }
+
+
+    @SubscribeMessage('start-countdown')
+    async handleStartCountdown(
+        @MessageBody() data: {
+            room: string,
+        },
+        @ConnectedSocket() client: Socket
+    ){
+
+        if(this.roomsWithGame.has(data.room)){
+            this.startCountDown(data);
+            return;
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(ownerId) return;
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'start-countdown',
+            data
+        }));
 
     }
 
