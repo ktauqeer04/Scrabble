@@ -54,6 +54,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                 if(event == 'joinRoom') this.joinRoomMethod(data, socketId);
                 if(event == 'Start-Game') this.startGameMethod(data, socketId);
                 if(event == 'start-countdown') this.startCountDown(data);
+
+ 
+                
+
+                if(event == 'Game-Settings') this.gameSettingsMethod(data, socketId);
             })
 
 
@@ -628,9 +633,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
 
 
+    private gameSettingsMethod(
+        data: {
+            room: string,
+            maxNoOfPlayers: number,
+            drawTimer: number,
+            maxRounds: number,
+            gameMode: GameMode
+        },
+        socketId: string
+    ) {
+
+        const game = this.roomsWithGame.get(data.room) as Game;
+
+        if(game.gameState != GameState.WAITING){
+            return;
+        }
+
+        if(data.maxNoOfPlayers < game.players.length){
+            this.server.to(socketId).emit("Cannot decrease player count");
+            return;
+        }
+
+        // console.log(data);
+
+        game?.setGameSettings(data.maxNoOfPlayers, data.drawTimer, data.maxRounds, data.gameMode);
+
+    }
+
 
     @SubscribeMessage('Game-Settings')
-    handleGameSettings(
+    async handleGameSettings(
         @MessageBody() data: {
             room: string,
             maxNoOfPlayers: number,
@@ -641,20 +674,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         @ConnectedSocket() client: Socket
     ){
 
-        const game = this.roomsWithGame.get(data.room) as Game;
 
-        if(game.gameState != GameState.WAITING){
+        if(this.roomsWithGame.has(data.room)){
+            this.gameSettingsMethod(data, client.id);
             return;
         }
 
-        if(data.maxNoOfPlayers < game.players.length){
-            client.emit("Cannot decrease player count");
-            return;
-        }
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+        
+        if(!ownerId) return;
 
-        // console.log(data);
-
-        game?.setGameSettings(data.maxNoOfPlayers, data.drawTimer, data.maxRounds, data.gameMode);
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'Game-Settings',
+            data,
+            socketId: client.id
+        }))
 
     }
 
