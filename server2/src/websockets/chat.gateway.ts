@@ -23,7 +23,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         @Inject('REDIS_PUB') private readonly redisPub: RedisClientType,
         @Inject('REDIS_SUB') private readonly redisSub: RedisClientType,
         @Inject('REDIS_ADAPTER_PUB') private readonly adapterPub: RedisClientType,
-        @Inject('REDIS_ADAPTER_PUB') private readonly adapterSub: RedisClientType
+        @Inject('REDIS_ADAPTER_SUB') private readonly adapterSub: RedisClientType
     ) {}
 
     afterInit(){
@@ -54,10 +54,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                 if(event == 'joinRoom') this.joinRoomMethod(data, socketId);
                 if(event == 'Start-Game') this.startGameMethod(data, socketId);
                 if(event == 'start-countdown') this.startCountDown(data);
-
- 
-
+                if(event == 'draw') this.drawMethod(data, socketId);
+                if(event == 'bucketFill') this.bucketFillMethod(data, socketId);
+                if(event == 'undoLastAction') this.undoLastActionMethod(data);
+                if(event == 'clearCanvas') this.clearCanvasMethod(data);
+                if(event == 'requestReplay') this.requestReplayMethod(data, socketId);
+                if(event == 'chatMessage') this.chatMessageMethod(data, socketId);
+                if(event == 'chosen-word') this.chosenWordMethod(data, socketId);
+                if(event == 'requestSnapshot') this.requestSnapshotMethod(data, socketId);
                 if(event == 'Game-Settings') this.gameSettingsMethod(data, socketId);
+                if (event === 'playerDisconnected') this.disconnectMethod(data.room, data.username);
             })
 
 
@@ -67,91 +73,102 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     }
 
-    // problem: handleDisconnect can only send clientId to the server, not the room
-    handleDisconnect(client: Socket) {
-
-        this.usernameWithClientId.forEach((socketId, username) => {
-
-            if(socketId === client.id){
-
-                const room = this.clientWithRoom.get(socketId) as string;
-                const game = this.roomsWithGame.get(room) as Game;
-
-                const newPlayersArray = game.players.filter(name => name != username);
-                game.players = newPlayersArray;
-                game.scoreBoard.delete(username);
-
-                this.server.to(room).emit("playerLeft", `${username} has left the room`);
-
-
-                if(username == game.drawer){
-
-                    if(game.gameState == GameState.PLAYER_CHOOSING){
-                        // call next player as a drawer with the game state as game choosing
-                        game.completeChooseAction?.();
-                        game.completeGuessAction?.();
-                        game.completeHiddenAction?.();
-                        // game.gameState = GameState.PLAYER_CHOOSING;
-                    }
-
-                    if(game.gameState == GameState.PLAYER_GUESSING){
-                        // finish the gameState of choosing and start hidden state
-                        game.completeGuessAction?.();
-                    }
-
-                }
-
-                // console.log('players array length ', game.players.length);
-
-                this.usernameWithClientId.delete(username);
-
-                client.leave(room);
-
-                //game ends when only one player is in the room
-                if(game.players.length == 1){
-                    console.log('game has officially ended');
-                    // I need to end the game here, the game cannot be played with only 1 people in it. 
-                    // but I need to break all the running tasks
-                    game.gameState = GameState.ENDED;
-                    game.endGame(() => {
-                        this.server.to(room).emit('gameWinner', `${game.winnerName} has won the game`);
-                    }, 
-                    () => {
-                        this.broadcastPersonalizedSnapshot(room, game);
-                        // this.server.to(room).emit('game-snapshot', game.getSnapshot())
-                    } 
-                    )
-                }
-
-                this.broadcastPersonalizedSnapshot(room, game);
-                // this.server.to(room).emit('game-snapshot', game?.getSnapshot())
-
-                //game ends when all the players leave the room
-                if(game.players.length == 0){
-
-                    game.endGame(() => {}, () => {}); // nothing to execute since all the players have left, but I need an argument here
-
-                    this.roomsWithGame.delete(room);
-
-                    this.clientWithRoom.forEach((r, socketId) => {
-                        if(r == room){
-                            this.clientWithRoom.delete(socketId);
-                        }
-                    })
-
-                    console.log(`${room} game has ended`);
-
-                }
-
-            }
-
-        })
-
-    }
-
-    handleConnection(client: any, ...args: any[]) {
+    async handleConnection(client: any, ...args: any[]) {
         
     }
+
+    // problem: handleDisconnect can only send clientId to the server, not the room
+    async handleDisconnect(client: Socket) {
+
+        console.log('handleDisconnect gets called');
+
+        console.log("map with sockets is ", this.usernameWithClientId)
+
+        for (const [username, socketId] of this.usernameWithClientId) {
+            if (socketId !== client.id) continue;
+
+            const room = this.clientWithRoom.get(socketId) as string;
+
+            if (this.roomsWithGame.has(room)) {
+                this.disconnectMethod(room, username);
+                console.log('does this gets called?')
+            }
+
+            
+            console.log('publish gets called')
+            const ownerId = await this.redis.get(`owner:${room}`);
+            console.log('ownerId is ', ownerId);
+            if (ownerId) {
+                console.log('publish gets called')
+                await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+                    event: 'playerDisconnected',
+                    data: { room, username },
+                }));
+            }
+            
+
+            this.usernameWithClientId.delete(username);
+            client.leave(room);
+        }
+    }
+
+    private disconnectMethod(room: string, username: string) {
+
+        console.log('disconnect method gets called from other instance');
+
+        const game = this.roomsWithGame.get(room) as Game; // real Game object — this only runs on the owner
+
+        const newPlayersArray = game.players.filter(name => name != username);
+        game.players = newPlayersArray;
+        game.scoreBoard.delete(username);
+
+        this.server.to(room).emit("playerLeft", `${username} has left the room`);
+
+        if (username == game.drawer) {
+            if (game.gameState == GameState.PLAYER_CHOOSING) {
+                game.completeChooseAction?.();
+                game.completeGuessAction?.();
+                game.completeHiddenAction?.();
+            }
+            if (game.gameState == GameState.PLAYER_GUESSING) {
+                game.completeGuessAction?.();
+            }
+        }
+
+        // NOTE: usernameWithClientId.delete(username) and client.leave(room)
+        // were REMOVED from here — they stayed in handleDisconnect above,
+        // since this method might run on a DIFFERENT instance than where
+        // those maps/socket actually live.
+
+        if (game.players.length == 1) {
+            console.log('game has officially ended');
+            game.gameState = GameState.ENDED;
+            game.endGame(() => {
+                this.server.to(room).emit('gameWinner', `${game.winnerName} has won the game`);
+            },
+            () => {
+                this.broadcastPersonalizedSnapshot(room, game);
+            });
+        }
+
+        this.broadcastPersonalizedSnapshot(room, game);
+
+        if (game.players.length == 0) {
+            game.endGame(() => {}, () => {});
+            this.roomsWithGame.delete(room);
+
+            // this cleanup is about the OWNER's clientWithRoom map, so it's only
+            // correct for entries that were ever set on THIS instance — see note below
+            this.clientWithRoom.forEach((r, socketId) => {
+                if (r == room) {
+                    this.clientWithRoom.delete(socketId);
+                }
+            });
+
+            console.log(`${room} game has ended`);
+        }
+    }
+
 
     private async broadcastPersonalizedSnapshot(room: string, game: Game) {
         const sockets = await this.server.in(room).fetchSockets();
@@ -165,11 +182,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
 
 
-    @SubscribeMessage('draw')
-    handleEventDraw(
-        @MessageBody() data: { room: string, payload: any, username: string},
-        @ConnectedSocket() client: Socket,
-    ): any {
+    private drawMethod(
+        data: {
+            room: string,
+            payload: any,
+            username: string
+        },
+        socketId: string
+    ) {
 
         const game = this.roomsWithGame.get(data.room);
 
@@ -182,7 +202,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             // belonging to one stroke can be undone together
             game.canvasSnapshot.push(data.payload);
 
-            client.to(data.room).emit('updateDrawing', data.payload)
+            this.server.to(data.room).except(socketId).emit('updateDrawing', data.payload)
             // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
             this.broadcastPersonalizedSnapshot(data.room, game);
 
@@ -190,12 +210,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     }
 
-    @SubscribeMessage('bucketFill')
-    handleEventBucketFill(
-        @MessageBody() data: { room: string, payload: any, username: string },
+    @SubscribeMessage('draw')
+    async handleEventDraw(
+        @MessageBody() data: { room: string, payload: any, username: string},
         @ConnectedSocket() client: Socket,
-    ): any {
+    ) {
 
+        if(this.roomsWithGame.has(data.room)){
+            this.drawMethod(data, client.id);
+            return;
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId) return;
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'draw',
+            data,
+            socketId: client.id
+        }));
+
+    }
+
+
+    private bucketFillMethod(
+        data: {
+            room: string,
+            username: string,
+            payload: any
+        },
+        socketId: string
+    ) {
         const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState != GameState.PLAYER_GUESSING) return;
@@ -204,21 +250,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         // payload: { x, y, color, tool: 'fill' }
         game.canvasSnapshot.push(data.payload);
 
-        client.to(data.room).emit('updateBucketFill', data.payload)
+        this.server.to(data.room).except(socketId).emit('updateBucketFill', data.payload)
         // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.broadcastPersonalizedSnapshot(data.room, game);
     }
 
 
-    // the last action of the drawer is checked, if they used bucket fill or a stroke
-    // if bucket filled then pop it out
-    // if it is a stroke, remove that stroke using the strokeId
-    @SubscribeMessage('undoLastAction')
-    handleUndo(
-        @MessageBody() data: { room: string, username: string },
+    @SubscribeMessage('bucketFill')
+    async handleEventBucketFill(
+        @MessageBody() data: { room: string, payload: any, username: string },
         @ConnectedSocket() client: Socket,
-    ): any {
+    ) {
 
+        if(this.roomsWithGame.has(data.room)){
+            this.bucketFillMethod(data, client.id);
+            return;
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId) return;
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'bucketFill',
+            data,
+            socketId: client.id
+        }));
+        
+    }
+
+
+    private undoLastActionMethod(
+        data: {
+            room: string,
+            username: string
+        },
+
+    ) {
         const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState != GameState.PLAYER_GUESSING) return;
@@ -240,16 +308,42 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         }
 
         this.server.to(data.room).emit('canvasUndo', game.canvasSnapshot);
-        // this.broadcastPersonalizedSnapshot(data.room, game);
-        // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
     }
 
-    @SubscribeMessage('clearCanvas')
-    handleEventClearCanvas(
+    // the last action of the drawer is checked, if they used bucket fill or a stroke
+    // if bucket filled then pop it out
+    // if it is a stroke, remove that stroke using the strokeId
+    @SubscribeMessage('undoLastAction')
+    async handleUndo(
         @MessageBody() data: { room: string, username: string },
         @ConnectedSocket() client: Socket,
-    ){
+    ) {
 
+        if(this.roomsWithGame.has(data.room)){
+            this.undoLastActionMethod(data);
+            return;
+        }
+        
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId) return;
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'undoLastAction',
+            data,
+            socketId: client.id
+        }))
+
+
+    }
+
+
+    private clearCanvasMethod(
+        data: {
+            room: string,
+            username: string,
+        },
+    ) {
         const game = this.roomsWithGame.get(data.room);
         if(game?.gameState != GameState.PLAYER_GUESSING) return;
         if(data.username != game.drawer) return;
@@ -262,24 +356,83 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         this.server.to(data.room).emit('updateCanvas');
     }
 
-    @SubscribeMessage('requestReplay')
-    handleRequestReplay(
-        @MessageBody() data: any,
+
+    @SubscribeMessage('clearCanvas')
+    async handleEventClearCanvas(
+        @MessageBody() data: { room: string, username: string },
         @ConnectedSocket() client: Socket,
-    ) {
+    ){
+
+        if(this.roomsWithGame.has(data.room)){
+            this.clearCanvasMethod(data);
+            return;
+        }
+        
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+        
+        if(!ownerId) return;
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'clearCanvas',
+            data,
+            socketId: client.id
+        }))
+
+
+    }
+
+
+    private requestReplayMethod(
+        data: {
+            room: string
+        },
+        socketId: string
+    ){
+
         const game = this.roomsWithGame.get(data.room);
+
         if (game?.gameState === GameState.PLAYER_GUESSING) {
             // canvasSnapshot is now a mixed array of stroke segments and fill
             // entries — client's replay handler needs to branch on entry.tool
-            client.emit("replayDrawing", game.canvasSnapshot);
+            this.server.to(socketId).emit("replayDrawing", game.canvasSnapshot);
         }
+
     }
 
-    @SubscribeMessage('chatMessage')
-    handleEventChatMessage(
-        @MessageBody() data: { room: string, message: string, username: string},
+
+    @SubscribeMessage('requestReplay')
+    async handleRequestReplay(
+        @MessageBody() data: any,
         @ConnectedSocket() client: Socket,
+    ) {
+        if(this.roomsWithGame.has(data.room)){
+            this.requestReplayMethod(data, client.id);
+            return;
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+        
+        if(!ownerId) return;
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event: 'requestReplay',
+            data,
+            socketId: client.id
+        }))
+
+
+    }
+
+
+    private chatMessageMethod(
+        data: {
+            room: string,
+            message: string,
+            username: string
+        },
+        socketId: string
     ){
+
         const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState == GameState.WAITING) return;
@@ -322,7 +475,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                 },
                 () => {
                     const closeAnswer = data.message + " is almost close"
-                    this.server.to(client.id).emit("closeCorrectAnswer", closeAnswer);
+                    this.server.to(socketId).emit("closeCorrectAnswer", closeAnswer);
                     this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
                 }, 
                 () => {
@@ -341,6 +494,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         console.log("last event ")
         // client.to(data.room).emit('game-snapshot', game?.getSnapshot())
         this.server.to(data.room).emit('receiveChatMessage', { message: data.message, username: data.username })
+
+    }
+
+    @SubscribeMessage('chatMessage')
+    async handleEventChatMessage(
+        @MessageBody() data: { room: string, message: string, username: string},
+        @ConnectedSocket() client: Socket,
+    ){
+        
+        if(this.roomsWithGame.has(data.room)){
+            this.chatMessageMethod(data, client.id);
+            return;
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId){
+            client.emit('roomNotExists', { message: 'Room does not exist', flag: false });
+            return;
+        }
+        
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            event:'chatMessage',
+            data: data,
+            socketId: client.id
+        }))
+
     }
 
 
@@ -372,9 +552,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         @ConnectedSocket() client: Socket,
     ){
 
+        await this.redis.set(`owner:${data.room}`, String(process.env.INSTANCE_ID)); // STEP 1 now
         this.createRoomMethod(data, client);
-
-        await this.redis.set(`owner:${data.room}`, String(process.env.INSTANCE_ID));
 
         console.log('redis event sent');
         
@@ -465,6 +644,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         },
         socketId: string
     ){
+
+
         const game = this.roomsWithGame.get(data.room) as Game;
 
         console.log("game state is :", game.gameState);
@@ -578,21 +759,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
 
 
-    @SubscribeMessage('chosen-word')
-    handleEventChosenWord(
-        @MessageBody() data: {room : string, chosenWord: string},
-        @ConnectedSocket() client: Socket
-    ) {
-
+    private chosenWordMethod(data: { room: string, chosenWord: string }, socketId: string) {
         const game = this.roomsWithGame.get(data.room);
 
         if(game?.gameState != GameState.PLAYER_CHOOSING){
-            client.disconnect(true);
+            this.server.in(socketId).disconnectSockets(true);
             return;
         }
 
         if(!game?.guessWords.includes(data.chosenWord)){
-            client.disconnect(true);
+            this.server.in(socketId).disconnectSockets(true);
             return;
         }
 
@@ -601,6 +777,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         // this.server.to(data.room).emit('game-snapshot', game?.getSnapshot());
         this.broadcastPersonalizedSnapshot(data.room, game);
+    }
+
+    @SubscribeMessage('chosen-word')
+    async handleEventChosenWord(
+        @MessageBody() data: {room : string, chosenWord: string},
+        @ConnectedSocket() client: Socket
+    ) {
+
+        if(this.roomsWithGame.has(data.room)){
+
+            this.chosenWordMethod(data, client.id);
+            return;
+
+        }
+
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId) {
+            return;
+        }
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            data,
+            event: 'chosen-word',
+            socketId: client.id
+        }))
+
+
     }
 
     // @SubscribeMessage('playerLeft')
@@ -620,15 +824,44 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     // server
 
 
-    @SubscribeMessage('requestSnapshot')
-    handleRequestSnapshot(
-        @MessageBody() data: any, 
-        @ConnectedSocket() client: Socket
+    private requestSnapshotMethod(
+        data: {
+            room: string
+        },
+        socketId: string
     ) {
         const game = this.roomsWithGame.get(data.room);
         if (game) {
-            client.emit('game-snapshot', game.getSnapshot());
+            this.broadcastPersonalizedSnapshot(data.room, game);
         }
+    }
+
+    @SubscribeMessage('requestSnapshot')
+    async handleRequestSnapshot(
+        @MessageBody() data: {
+            room: string
+        }, 
+        @ConnectedSocket() client: Socket
+    ) {
+
+        if(this.roomsWithGame.has(data.room)){
+
+            this.requestSnapshotMethod(data, client.id);
+            return;
+        }
+        
+        const ownerId = await this.redis.get(`owner:${data.room}`);
+
+        if(!ownerId) {
+            return;
+        }
+
+        await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
+            data,
+            event: 'requestSnapshot',
+            socketId: client.id
+        }))
+
     }
 
 
@@ -726,7 +959,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         const ownerId = await this.redis.get(`owner:${data.room}`);
 
-        if(ownerId) return;
+        if(!ownerId) return;
 
         await this.redisPub.publish(`inbox:${ownerId}`, JSON.stringify({
             event: 'start-countdown',
