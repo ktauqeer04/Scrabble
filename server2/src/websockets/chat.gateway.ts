@@ -56,7 +56,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                 if(event == 'start-countdown') this.startCountDown(data);
 
  
-                
 
                 if(event == 'Game-Settings') this.gameSettingsMethod(data, socketId);
             })
